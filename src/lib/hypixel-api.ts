@@ -30,60 +30,9 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
     }
 
     const url = `https://api.mojang.com/users/profiles/minecraft/${encodeURIComponent(cleanUsername)}`
-    console.log('Fetching Mojang UUID for:', cleanUsername)
-    console.log('Request URL:', url)
+    console.log('🔍 Fetching Mojang UUID for:', cleanUsername)
+    console.log('📡 Request URL:', url)
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 8000)
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      signal: controller.signal
-    })
-
-    clearTimeout(timeoutId)
-
-    console.log('Mojang API Response Status:', response.status)
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error(`Player "${cleanUsername}" not found. Check the spelling and try again.`)
-      }
-      if (response.status === 429) {
-        throw new Error('Too many requests to Mojang API. Please wait a moment and try again.')
-      }
-      throw new Error(`Failed to fetch player data (Status: ${response.status})`)
-    }
-
-    const data = await response.json()
-    console.log('Mojang API Response Data:', data)
-    
-    if (!data || !data.id || !data.name) {
-      throw new Error('Invalid response from Mojang API')
-    }
-
-    return data
-  } catch (error) {
-    console.error('Mojang API Error:', error)
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        throw new Error('Request timeout - Mojang API took too long to respond')
-      }
-      throw error
-    }
-    throw new Error('Network error while fetching player data. Please check your connection.')
-  }
-}
-
-export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfile[]> {
-  try {
-    const url = `https://api.hypixel.net/v2/skyblock/profiles?uuid=${uuid}`
-    console.log('Fetching Hypixel Skyblock profiles for UUID:', uuid)
-    console.log('Request URL:', url)
-    
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 10000)
 
@@ -97,14 +46,80 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
 
     clearTimeout(timeoutId)
 
-    console.log('Hypixel API Response Status:', response.status)
+    console.log('✅ Mojang API Response Status:', response.status)
 
     if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`Player "${cleanUsername}" not found. Check the spelling and try again.`)
+      }
+      if (response.status === 429) {
+        throw new Error('Too many requests to Mojang API. Please wait a moment and try again.')
+      }
+      if (response.status === 204) {
+        throw new Error(`Player "${cleanUsername}" not found.`)
+      }
+      throw new Error(`Failed to fetch player data (Status: ${response.status})`)
+    }
+
+    const data = await response.json()
+    console.log('📦 Mojang API Response Data:', data)
+    
+    if (!data || !data.id || !data.name) {
+      throw new Error('Invalid response from Mojang API')
+    }
+
+    const formattedUUID = data.id.replace(/(\w{8})(\w{4})(\w{4})(\w{4})(\w{12})/, '$1-$2-$3-$4-$5')
+    console.log('🆔 UUID (formatted):', formattedUUID)
+    console.log('🆔 UUID (original):', data.id)
+
+    return {
+      id: data.id,
+      name: data.name
+    }
+  } catch (error) {
+    console.error('❌ Mojang API Error:', error)
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - Mojang API took too long to respond')
+      }
+      throw error
+    }
+    throw new Error('Network error while fetching player data. Please check your connection.')
+  }
+}
+
+export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfile[]> {
+  try {
+    const cleanUUID = uuid.replace(/-/g, '')
+    const url = `https://api.hypixel.net/v2/skyblock/profiles?uuid=${cleanUUID}`
+    console.log('🔍 Fetching Hypixel Skyblock profiles for UUID:', cleanUUID)
+    console.log('📡 Request URL:', url)
+    
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      signal: controller.signal
+    })
+
+    clearTimeout(timeoutId)
+
+    console.log('✅ Hypixel API Response Status:', response.status)
+    console.log('📋 Response Headers:', Object.fromEntries(response.headers.entries()))
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ Error response body:', errorText)
+      
       if (response.status === 429) {
         throw new Error('API rate limit reached. Please try again in a moment.')
       }
       if (response.status === 403) {
-        throw new Error('Invalid API key or access denied. Make sure the profile API is enabled.')
+        throw new Error('Access denied. The Hypixel API may be down or the player has disabled API access.')
       }
       if (response.status === 400) {
         throw new Error('Invalid player UUID format')
@@ -116,20 +131,24 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
     }
 
     const data: HypixelResponse = await response.json()
-    console.log('Hypixel API Response Data:', data)
-    console.log('Number of profiles found:', data.profiles?.length || 0)
+    console.log('📦 Hypixel API Response Data:', {
+      success: data.success,
+      profileCount: data.profiles?.length || 0,
+      profileNames: data.profiles?.map(p => p.cute_name) || []
+    })
 
     if (!data.success) {
       throw new Error('API request failed - the player may not have Skyblock API enabled')
     }
 
     if (!data.profiles || data.profiles.length === 0) {
-      throw new Error('This player has no Skyblock profiles. They may have never played Skyblock.')
+      throw new Error('This player has no Skyblock profiles or has API disabled. Make sure API settings are enabled in the Hypixel settings menu.')
     }
 
+    console.log('✅ Successfully fetched', data.profiles.length, 'profile(s)')
     return data.profiles
   } catch (error) {
-    console.error('Hypixel API Error:', error)
+    console.error('❌ Hypixel API Error:', error)
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
         throw new Error('Request timeout - Hypixel API took too long to respond')

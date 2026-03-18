@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badg
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { ArrowLeft, CheckCircle, XCircle, Clock } from '@phosphor-icons/react'
-import { fetchMinecraftUUID, fetchSkyblockProfiles } from '@/lib/hypixel-api'
+interface TestResult {
+  status: 'pending' | 'success' | 'error'
+  timestamp: number
 
 interface TestResult {
   username: string
@@ -15,23 +15,23 @@ interface TestResult {
   profileCount?: number
 }
 
-interface TestingPanelProps {
-  onClose: () => void
-}
 
-const TEST_USERNAMES = [
-  'Technoblade',
-  'Dream',
-  'InvalidUser123456789'
-]
+      setTestResults(
+ 
 
-export function TestingPanel({ onClose }: TestingPanelProps) {
-  const [testResults, setTestResults] = useState<TestResult[]>([])
-  const [isRunning, setIsRunning] = useState(false)
 
-  const runTests = async () => {
-    setIsRunning(true)
-    setTestResults([])
+        const mo
+        tr
+          
+ 
+
+                  message: `Found ${profiles.length} profile(s
+                  profileCount: profiles.length
+              : result
+
+            result.username === 
+                  ...r
+                  mess
 
     for (const username of TEST_USERNAMES) {
       setTestResults(prev => [...prev, {
@@ -43,7 +43,7 @@ export function TestingPanel({ onClose }: TestingPanelProps) {
 
       try {
         const mojangData = await fetchMinecraftUUID(username)
-        
+  return
         try {
           const profiles = await fetchSkyblockProfiles(mojangData.id)
           
@@ -54,64 +54,64 @@ export function TestingPanel({ onClose }: TestingPanelProps) {
                   status: 'success',
                   message: `Found ${profiles.length} profile(s)`,
                   uuid: mojangData.id,
-                  profileCount: profiles.length
-                }
-              : result
-          ))
-        } catch (profileError) {
-          setTestResults(prev => prev.map(result => 
-            result.username === username && result.status === 'pending'
-              ? {
-                  ...result,
-                  status: 'error',
-                  message: profileError instanceof Error ? profileError.message : 'Failed to fetch profiles'
-                }
-              : result
-          ))
-        }
-      } catch (error) {
-        setTestResults(prev => prev.map(result => 
-          result.username === username && result.status === 'pending'
-            ? {
-                ...result,
-                status: 'error',
-                message: error instanceof Error ? error.message : 'Failed to fetch UUID'
-              }
-            : result
-        ))
-      }
-    }
-
-    setIsRunning(false)
-  }
-
-  const successCount = testResults.filter(r => r.status === 'success').length
-  const errorCount = testResults.filter(r => r.status === 'error').length
-
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <header className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl md:text-4xl text-primary tracking-tight font-heading">
-              API Testing Panel
-            </h1>
-            <Button 
-              variant="ghost" 
-              onClick={onClose}
-              className="gap-2"
-            >
-              <ArrowLeft size={20} />
-              Back
-            </Button>
-          </div>
-          <p className="text-muted-foreground font-body">
-            Test the Hypixel API connection with sample usernames
-          </p>
-
-          <div className="flex items-center gap-3 mt-4">
             <Button
-              onClick={runTests}
+              dis
+            >
+            
+                  Running Tests.
+              ) : (
+                  <CheckCircle size={20} weight="fill" />
+                <
+            </Button>
+            {testResults.length > 
+                <Badge variant="secondary" className="gap-2">
+                 
+                <Badge
+            
+         
+          </div>
+
+          <h3 className="text-lg font-semibold mb-4 text-foreground f
+          </h3>
+            <div className
+                <div className="
+                    Click "Run Test Suite" to start testing
+               
+                test
+          
+       
+     
+
+                    }}
+   
+
+                        )}
+                          <CheckCircle size={20} weight="fill" className=
+
+          
+                          {result.username}
+                      </div>
+                        <Badge va
+                        </Badge>
+                    </div>
+                      <p classN
+                 
+                    
+                        ? 'tex
+                    }`}>
+                    </p>
+             
+            </div>
+        </Card>
+        <Card classNa
+            Abou
+          <ul className="text-xs text-muted-foreground fo
+            <li>• Tests the complete API flow: Mojang UUID lookup
+          </ul
+
+  )
+
+
               disabled={isRunning}
               className="gap-2"
             >
@@ -219,6 +219,6 @@ export function TestingPanel({ onClose }: TestingPanelProps) {
           </ul>
         </Card>
       </div>
-    </div>
+
   )
-}
+

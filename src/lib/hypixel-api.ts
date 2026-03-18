@@ -16,6 +16,7 @@ export interface HypixelResponse {
 }
 
 const ELITE_API_BASE = 'https://api.elitebot.dev'
+const HYPIXEL_API_KEY = '14a7e13c-88e4-4e69-bcbb-1699bd3862f7'
 
 export async function fetchMinecraftUUID(username: string): Promise<MojangProfile> {
   const cleanUsername = username.trim().replace(/[^a-zA-Z0-9_]/g, '')
@@ -140,8 +141,37 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
   
   const apis = [
     {
+      name: 'Hypixel Official',
+      url: `https://api.hypixel.net/v2/skyblock/profiles?uuid=${cleanUUID}`,
+      headers: {
+        'API-Key': HYPIXEL_API_KEY,
+        'Accept': 'application/json'
+      } as HeadersInit,
+      parse: (data: any) => {
+        console.log('📦 Hypixel Official API response:', data)
+        
+        if (!data.success) {
+          throw new Error('API request failed')
+        }
+        
+        if (!data.profiles || !Array.isArray(data.profiles) || data.profiles.length === 0) {
+          throw new Error('No profiles found')
+        }
+
+        return data.profiles.map((profile: any) => ({
+          profile_id: profile.profile_id,
+          cute_name: profile.cute_name || 'Unknown',
+          selected: profile.selected || false,
+          members: profile.members || {}
+        }))
+      }
+    },
+    {
       name: 'Elite API',
       url: `${ELITE_API_BASE}/player/${cleanUUID}`,
+      headers: {
+        'Accept': 'application/json'
+      } as HeadersInit,
       parse: (data: any) => {
         console.log('📦 Elite API response:', data)
         
@@ -168,6 +198,9 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
     {
       name: 'Sky.shiiyu.moe',
       url: `https://sky.shiiyu.moe/api/v2/profile/${cleanUUID}`,
+      headers: {
+        'Accept': 'application/json'
+      } as HeadersInit,
       parse: (data: any) => {
         if (!data.profiles || Object.keys(data.profiles).length === 0) {
           throw new Error('No profiles found')
@@ -194,9 +227,7 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
 
       const response = await fetch(api.url, {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
+        headers: api.headers,
         mode: 'cors',
         signal: controller.signal
       })
@@ -210,6 +241,10 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
         }
         if (response.status === 404) {
           console.log(`⚠️ ${api.name} returned 404, trying next API...`)
+          continue
+        }
+        if (response.status === 403) {
+          console.log(`⚠️ ${api.name} returned 403 (forbidden), trying next API...`)
           continue
         }
         throw new Error(`API returned status ${response.status}`)

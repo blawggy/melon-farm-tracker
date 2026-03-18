@@ -28,6 +28,7 @@ import {
 import { calculateMilestoneBadge } from '@/lib/utils'
 import { ComparisonView } from '@/components/ComparisonView'
 import { GuidesView } from '@/components/GuidesView'
+import { TestingPanel } from '@/components/TestingPanel'
 import type { ProfileData } from '@/types'
 
 interface PlayerData {
@@ -55,6 +56,7 @@ function App() {
   const [comparisonPlayers, setComparisonPlayers] = useKV<ComparisonPlayer[]>('comparison-players', [])
   const [showComparison, setShowComparison] = useState(false)
   const [showGuides, setShowGuides] = useState(false)
+  const [showTesting, setShowTesting] = useState(false)
 
   const searchPlayer = async () => {
     if (!searchQuery.trim()) {
@@ -191,6 +193,10 @@ function App() {
     setComparisonPlayers([])
     setShowComparison(false)
     toast.success('Comparison cleared')
+  }
+
+  if (showTesting) {
+    return <TestingPanel onClose={() => setShowTesting(false)} />
   }
 
   if (showGuides) {
@@ -705,6 +711,14 @@ function App() {
             >
               <Book size={20} weight="fill" />
               Farming Guides
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowTesting(true)}
+              className="gap-2"
+            >
+              <Sparkle size={20} weight="fill" />
+              API Testing
             </Button>
           </div>
         </motion.header>

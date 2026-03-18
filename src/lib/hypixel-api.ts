@@ -67,6 +67,7 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
         headers: {
           'Accept': 'application/json',
         },
+        mode: 'cors',
         signal: controller.signal
       })
 
@@ -98,6 +99,11 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
         if (error.name === 'AbortError') {
           console.log(`⏱️ ${api.name} timeout, trying next API...`)
           lastError = new Error('Request timeout')
+          continue
+        }
+        if (error.message.includes('Failed to fetch')) {
+          console.log(`🚫 ${api.name} CORS or network error, trying next API...`)
+          lastError = new Error('Network or CORS error - trying alternative APIs')
           continue
         }
         if (error.message.includes('Player not found')) {
@@ -182,6 +188,7 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
         headers: {
           'Accept': 'application/json',
         },
+        mode: 'cors',
         signal: controller.signal
       })
 
@@ -213,6 +220,11 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
         if (error.name === 'AbortError') {
           console.log(`⏱️ ${api.name} timeout, trying next API...`)
           lastError = new Error('Request timeout')
+          continue
+        }
+        if (error.message.includes('Failed to fetch')) {
+          console.log(`🚫 ${api.name} CORS or network error, trying next API...`)
+          lastError = new Error('Network or CORS error - trying alternative APIs')
           continue
         }
         if (error.message.includes('No Skyblock profiles') || error.message.includes('no Skyblock profiles')) {

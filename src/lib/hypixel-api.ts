@@ -15,6 +15,8 @@ export interface HypixelResponse {
   profiles: HypixelProfile[]
 }
 
+const ELITE_API_BASE = 'https://api.elitebot.dev'
+
 export async function fetchMinecraftUUID(username: string): Promise<MojangProfile> {
   const cleanUsername = username.trim().replace(/[^a-zA-Z0-9_]/g, '')
   
@@ -27,6 +29,19 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
   }
 
   const apis = [
+    {
+      name: 'Elite API',
+      url: `${ELITE_API_BASE}/player/${cleanUsername}`,
+      parse: (data: any) => {
+        if (data.uuid && data.name) {
+          return {
+            id: data.uuid.replace(/-/g, ''),
+            name: data.name
+          }
+        }
+        throw new Error('Invalid response from API')
+      }
+    },
     {
       name: 'Mojang Official',
       url: `https://api.mojang.com/users/profiles/minecraft/${cleanUsername}`,
@@ -122,46 +137,32 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
 
 export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfile[]> {
   const cleanUUID = uuid.replace(/-/g, '')
-  const HYPIXEL_API_KEY = '14a7e13c-88e4-4e69-bcbb-1699bd3862f7'
   
   const apis = [
     {
-      name: 'Hypixel Official API',
-      url: `https://api.hypixel.net/v2/skyblock/profiles?uuid=${cleanUUID}`,
+      name: 'Elite API',
+      url: `${ELITE_API_BASE}/player/${cleanUUID}`,
       parse: (data: any) => {
-        if (!data.success) {
-          throw new Error('API request unsuccessful')
-        }
+        console.log('📦 Elite API response:', data)
         
-        if (!data.profiles || data.profiles.length === 0) {
+        if (!data.profiles || typeof data.profiles !== 'object') {
           throw new Error('No profiles found')
         }
-        
-        return data.profiles.map((profile: any) => ({
-          profile_id: profile.profile_id,
-          cute_name: profile.cute_name || 'Unknown',
-          selected: profile.selected || false,
-          members: profile.members || {}
-        }))
-      },
-      headers: {
-        'API-Key': HYPIXEL_API_KEY
-      }
-    },
-    {
-      name: 'Slothpixel (Hypixel Proxy)',
-      url: `https://api.slothpixel.me/api/skyblock/profiles/${cleanUUID}`,
-      parse: (data: any) => {
-        if (!data || !Array.isArray(data) || data.length === 0) {
+
+        const profiles = Object.entries(data.profiles).map(([profileId, profile]: [string, any]) => {
+          return {
+            profile_id: profileId,
+            cute_name: profile.name || profile.cute_name || profileId,
+            selected: profile.selected || false,
+            members: profile.members || {}
+          }
+        })
+
+        if (profiles.length === 0) {
           throw new Error('No profiles found')
         }
-        
-        return data.map((profile: any) => ({
-          profile_id: profile.profile_id || profile.cute_name,
-          cute_name: profile.cute_name || 'Unknown',
-          selected: profile.selected || false,
-          members: profile.members || {}
-        }))
+
+        return profiles
       }
     },
     {
@@ -191,17 +192,11 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 15000)
 
-      const headers: Record<string, string> = {
-        'Accept': 'application/json',
-      }
-      
-      if ('headers' in api && api.headers) {
-        Object.assign(headers, api.headers)
-      }
-
       const response = await fetch(api.url, {
         method: 'GET',
-        headers,
+        headers: {
+          'Accept': 'application/json',
+        },
         mode: 'cors',
         signal: controller.signal
       })
@@ -215,10 +210,6 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
         }
         if (response.status === 404) {
           console.log(`⚠️ ${api.name} returned 404, trying next API...`)
-          continue
-        }
-        if (response.status === 403) {
-          console.log(`⚠️ ${api.name} returned 403 (forbidden/invalid key), trying next API...`)
           continue
         }
         throw new Error(`API returned status ${response.status}`)

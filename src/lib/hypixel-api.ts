@@ -606,12 +606,12 @@ export function parsePet(memberData: any): {
   const pets = memberData?.pets_data?.pets
   
   if (!pets || !Array.isArray(pets)) {
-  const activePet = pets.find((p: any) => p.active)
-
-  if (!activePet) {
     return null
   }
 
+  const activePet = pets.find((p: any) => p.active)
+
+  if (!activePet) {
     return null
   }
 

@@ -530,6 +530,9 @@ export function parseGarden(memberData: any): {
   const uniqueVisitors = gardenData.unique_visitors || gardenData.unique_visitors_2 || []
   console.log('🔍 Unique visitors:', uniqueVisitors)
   
+  const compostData = gardenData.compost || gardenData.compost_data || {}
+  console.log('🔍 Compost data:', compostData)
+  
   const cropMilestoneValues = [
     1000, 5000, 25000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000, 25000000, 50000000, 100000000
   ]
@@ -563,31 +566,33 @@ export function parseGarden(memberData: any): {
   if (Array.isArray(uniqueVisitors)) {
     visitorCount = uniqueVisitors.length
   } else if (typeof uniqueVisitors === 'number') {
+    visitorCount = uniqueVisitors
   } else if (uniqueVisitors && typeof uniqueVisitors === 'object') {
     const visitorKeys = Object.keys(uniqueVisitors)
-    const visitorKeys = Object.keys(uniqueVisitors)
     visitorCount = visitorKeys.length
-  
+  }
   
   let compostTotal = 0
+  if (typeof compostData === 'number') {
     compostTotal = compostData
   } else if (compostData && typeof compostData === 'object') {
-    compostTotal = compostData
-  }
     compostTotal = Object.values(compostData).reduce((sum: number, val: any) => sum + (typeof val === 'number' ? val : 0), 0)
-  console.log('✅ parseGarden result:', {
+  }
   
   console.log('✅ parseGarden result:', {
+    level,
     visitors: visitorCount,
     cropsCount: crops.length,
-    visitors: visitorCount,
+    compost: compostTotal
+  })
 
   return {
     level,
     crops,
+    visitors: visitorCount,
     compost: compostTotal
   }
-    visitors: visitorCount,
+}
 
 function calculateGardenLevel(experience: number): number {
   const levels = [

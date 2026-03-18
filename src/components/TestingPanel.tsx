@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { ArrowLeft, CheckCircle, XCircle, Clock } from '@phosphor-icons/react'
-import { fetchMinecraftUUID, fetchSkyblockProfiles } from '@/lib/hypixel-api'
+import { ScrollArea } from '@/components/ui/s
+import { fetchMinecraftUUID, fetchSkyblockP
+interface TestResult {
+  status: 'pending' | 'success' | 'error'
+  timestamp: number
 
 interface TestResult {
   username: string
@@ -15,22 +15,22 @@ interface TestResult {
   profileCount?: number
 }
 
-interface TestingPanelProps {
-  onClose: () => void
-}
+    for (const username of TE
+        username,
+ 
 
-const TEST_USERNAMES = ['Technoblade', 'Dream', 'NotAValidUser123', 'Hypixel', 'InvalidName99999']
+      try {
 
-export function TestingPanel({ onClose }: TestingPanelProps) {
-  const [testResults, setTestResults] = useState<TestResult[]>([])
-  const [isRunning, setIsRunning] = useState(false)
+          const profiles = await fetchSkyblockProfiles(mojangD
+          setTestResults(prev => prev.map(result => 
+              ? {
 
-  const successCount = testResults.filter(r => r.status === 'success').length
-  const errorCount = testResults.filter(r => r.status === 'error').length
+                  uuid: mojangData.id,
+                }
 
-  const runTests = async () => {
-    setIsRunning(true)
-    setTestResults([])
+          setTestResults(prev =>
+              ? {
+                  stat
 
     for (const username of TEST_USERNAMES) {
       setTestResults(prev => [...prev, {
@@ -42,89 +42,89 @@ export function TestingPanel({ onClose }: TestingPanelProps) {
 
       try {
         const mojangData = await fetchMinecraftUUID(username)
-        
+
         try {
           const profiles = await fetchSkyblockProfiles(mojangData.id)
           
-          setTestResults(prev => prev.map(result => 
-            result.username === username && result.status === 'pending'
-              ? {
-                  ...result,
-                  status: 'success',
-                  message: `Found ${profiles.length} profile(s)`,
-                  uuid: mojangData.id,
-                  profileCount: profiles.length
-                }
-              : result
-          ))
-        } catch (err) {
-          setTestResults(prev => prev.map(result => 
-            result.username === username && result.status === 'pending'
-              ? {
-                  ...result,
-                  status: 'error',
-                  message: err instanceof Error ? err.message : 'Failed to fetch profiles',
-                  uuid: mojangData.id
-                }
-              : result
-          ))
-        }
-      } catch (err) {
-        setTestResults(prev => prev.map(result => 
-          result.username === username && result.status === 'pending'
-            ? {
-                ...result,
-                status: 'error',
-                message: err instanceof Error ? err.message : 'Failed to fetch UUID'
-              }
-            : result
-        ))
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 500))
-    }
-
-    setIsRunning(false)
-  }
-
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <header className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <Button 
-              variant="ghost" 
               onClick={onClose}
-              className="gap-2"
             >
-              <ArrowLeft size={20} />
-              Back
+              Bac
+          </div>
+          <h1 className="text-3xl md
+          </h1>
+            Test the Hypixel Skyblock 
+
+            <Butt
+              disabled
+            
+                <>
+                  Running Tests...
+              ) : (
+                 
+                </>
             </Button>
+            {testResults.length > 0 && (
+                <Badge variant="secon
+                 
+                <Badge
+            
+         
           </div>
 
-          <h1 className="text-3xl md:text-4xl text-primary tracking-tight mb-2">
-            API Testing Panel
-          </h1>
-          <p className="text-muted-foreground font-body">
-            Test the Hypixel Skyblock API integration with sample usernames
-          </p>
+          <h3 className="text-lg font-semibold mb-4 text-foreground f
+          </h3>
+            <div className
+                <div className="
+                    Click "Run Test Suite" to start testing
+               
+                test
+          
+       
 
-          <div className="flex items-center gap-3 mt-6 flex-wrap">
-            <Button
-              onClick={runTests}
-              disabled={isRunning}
-              className="gap-2"
-            >
-              {isRunning ? (
-                <>
-                  <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
-                  Running Tests...
-                </>
-              ) : (
-                <>
-                  <CheckCircle size={20} weight="fill" />
-                  Run Test Suite
-                </>
+                        ? 'var(--color-destructive)' 
+     
+
+                       
+   
+
+          
+                        )}
+                          {result.username}
+                      </div>
+                        <Badge variant="outline" className="font-m
+                    
+                    </div>
+                      <p classN
+                      </p>
+             
+                        ? 'text-destr
+                  
+                    <
+                
+
+        </Card>
+        <Card className="p-6 
+            Abo
+          <ul className="text-xs text-muted-foreground fo
+            <li>• Tests the complete API flow: Mojang UUID lookup → Hypixel
+          </ul
+
+  )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
               )}
             </Button>
 
@@ -219,6 +219,6 @@ export function TestingPanel({ onClose }: TestingPanelProps) {
           </ul>
         </Card>
       </div>
-    </div>
+
   )
-}
+

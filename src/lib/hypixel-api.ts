@@ -30,7 +30,7 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 10000)
 
-    const response = await fetch(`https://api.mojang.com/users/profiles/minecraft/${cleanUsername}`, {
+    const response = await fetch(`https://api.ashcon.app/mojang/v2/user/${cleanUsername}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -52,15 +52,15 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
 
     const data = await response.json()
 
-    if (!data.id || !data.name) {
-      throw new Error('Invalid response from Mojang API')
+    if (!data.uuid || !data.username) {
+      throw new Error('Invalid response from API')
     }
 
-    console.log('🔍 Found player:', data.name, 'UUID:', data.id)
+    console.log('🔍 Found player:', data.username, 'UUID:', data.uuid)
 
     return {
-      id: data.id,
-      name: data.name
+      id: data.uuid.replace(/-/g, ''),
+      name: data.username
     }
   } catch (error) {
     if (error instanceof Error) {

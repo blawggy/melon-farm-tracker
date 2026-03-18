@@ -1,75 +1,75 @@
 # Planning Guide
 
-A Minecraft Hypixel Skyblock farming analyzer that fetches real player data from the Hypixel API to display farming fortune for melons, pets, armor, equipment, garden levels, and greenhouse progress.
+**Experience Qualities**: 
 
 **Experience Qualities**: 
 1. **Data-driven** - Real-time fetching of player stats from Hypixel API provides accurate, up-to-date farming information
 2. **Comprehensive** - Displays all farming-related stats including fortune breakdown, equipment, pets, and garden progress
 3. **Game-authentic** - Visual design mirrors Minecraft's aesthetic with blocky elements and familiar Skyblock color schemes
 
-**Complexity Level**: Complex Application (advanced functionality with API integration and multiple views)
-  - The app fetches data from external APIs, parses complex nested Skyblock profile data, calculates farming fortune from multiple sources, and displays comprehensive player statistics
-
-## Essential Features
-
-### Player Search
-- **Functionality**: Search for any Hypixel Skyblock player by username with autocomplete and recent searches
-- **Purpose**: Entry point to analyze any player's farming stats
-- **Trigger**: User enters username in search field on homepage
-- **Progression**: Enter username → Click search → Fetch player UUID from Mojang API → Fetch Skyblock profiles from Hypixel API → Display profile selector if multiple profiles → Load profile data view
-- **Success criteria**: Successful API calls, error handling for invalid usernames, loading states during fetch, recent searches persist
+- **Progression**: Enter username → Click search → Fetch player UUID from Mojang API → Fetch Skyblock prof
 - **API Endpoints**:
-  - Mojang UUID: `https://api.mojang.com/users/profiles/minecraft/{username}`
-  - Hypixel Profiles: `https://api.hypixel.net/v2/skyblock/profiles?uuid={uuid}` (no API key required)
-- **Test Cases**: 
-  - Verified with username 'zptc' - app successfully fetches UUID and Skyblock profiles
-  - Console logs track: UUID fetch → Profile fetch → Data parsing → Display rendering
 
-### Farming Fortune Breakdown
-- **Functionality**: Calculate and display total farming fortune for melons from all sources (armor, equipment, pets, accessories, enchantments)
-- **Purpose**: Shows players exactly where their farming fortune comes from and how to optimize
+  - Verified with use
+
+- **Functionality
 - **Trigger**: Automatically loads after profile selection
-- **Progression**: Profile loaded → Parse armor items → Parse equipment items → Parse pet data → Parse accessory bag → Calculate fortune from each source → Display categorized breakdown with totals
-- **Success criteria**: Accurate fortune calculations, handles missing items gracefully, displays item names and fortune values, shows total farming fortune
+- **Success criteria**: Accurate fortune calculations, handles m
+### Equipment Display
+- **Purpose**: Visual representation of farming gear setup
+- **Progression**: Profile data → Extract armor pieces → Extract equipment slots → Extract held items → Display with item names, enchant
+- **API Endpoints**:
+- **Functionality**: Display active farming pet with level, rarity, and fortu
+- **Trigger**: Part of profile data display
+- **Success criter
+### Garden & Greenhouse Progress
+- **Purpose**: Shows overall farming progression in the garden update
+
+
+- **Functionality**: Create, edit, and manage custom farming plot guides with full markdown support
+- **Trigger**: Click "Farming Guides" button from main page or navigation
+- **Trigger**: Automatically loads after profile selection
+### Player Comparison
+- **Purpose**: Benchmark performance against friends or top farmers
 
 ### Equipment Display
-- **Functionality**: Display player's farming armor set, equipment, and held items with stats
+- **Invalid Username**: Display clear error message when player not found or doesn't play Sky
 - **Purpose**: Visual representation of farming gear setup
 - **Trigger**: Part of profile data display
-- **Progression**: Profile data → Extract armor pieces → Extract equipment slots → Extract held items → Display with item names, enchantments, and fortune contributions
-- **Success criteria**: Shows all 4 armor pieces, equipment slots (necklace, cloak, belt, gloves), displays enchantments, handles missing items
+- **Offline API**: Display cached data if available, otherwise show service unavailable message
+- **Markdown Errors**: Render markdown safely, sanitize potentially dangerous HTML
 
-### Pet Analyzer
-- **Functionality**: Display active farming pet with level, rarity, and fortune contribution
-- **Purpose**: Shows which pet is being used for farming and its stat bonuses
-- **Trigger**: Part of profile data display
-- **Progression**: Profile data → Find active pet → Extract pet stats → Calculate farming fortune from pet → Display pet icon, level, rarity, and fortune bonus
-- **Success criteria**: Identifies active pet correctly, shows pet progression, calculates fortune accurately
+The design shoul
+## Color Selection
+- **Primary Color**: Skyblock Gold (oklch(0.65 0.15 85)) - Represents wealth 
+  - Deep Forest Green (oklch(0.45 0.12 150)
+- **Accent Color**: Bright Aqua (oklch(0.70 0.15 200)) - Eye-catching highlight for farming fortune numbers and CTAs
+  - Background (Dark Slate oklch(0.18 0.02 240)): Light Text (oklch(0.95 0.01 240)) - Ratio 12.5:1 ✓
 
 ### Garden & Greenhouse Progress
-- **Functionality**: Display garden level, plot unlocks, visitor milestones, and greenhouse progress
+The typefaces should feel professional yet playful to match Minecraft's aesthetic while remaining hi
 - **Purpose**: Shows overall farming progression in the garden update
-- **Trigger**: Part of profile data display
-- **Progression**: Profile data → Extract garden data → Parse crop milestones → Parse visitor completions → Display garden level, unlocked plots, crop progress bars → Extract greenhouse data → Display greenhouse status
-- **Success criteria**: Accurate garden level calculation, shows all crops with progress, displays visitor milestones, greenhouse level and upgrades
+  - H2 (Section Headers): Inter Semibold/24
+  - Stats (Large Numbers): JetBrains Mono Bold/32px/tabular numbers - Fortune values stand out
+  - Item Names: JetBrains Mono/14px/medium weight - Consistent with game's item display
 
-### Farming Plot Guides
+Animations should feel 
 - **Functionality**: Create, edit, and manage custom farming plot guides with full markdown support
-- **Purpose**: Allow users to document farming strategies, plot layouts, and optimization tips for different crops
+- Fortune breakdown animates in with progressive reveal of each source
 - **Trigger**: Click "Farming Guides" button from main page or navigation
-- **Progression**: Access guides view → Browse existing guides → Create new guide → Enter title and plot type → Write content using markdown editor → Preview formatted content → Save guide → Star important guides → Edit or delete guides as needed
-- **Success criteria**: Guides persist between sessions, markdown renders correctly with proper styling, users can organize guides by plot type, starred guides appear at top, smooth edit/preview toggle, search and filter functionality
+- Loading spinners use Minecraft-inspired rotation
+## Component Selection
 
 ### Player Comparison
-- **Functionality**: Compare farming stats across multiple players side-by-side
+  - Badge (for rarity tiers, levels) - Color-coded for Common/Uncommon/Rare/Epi
 - **Purpose**: Benchmark performance against friends or top farmers
-- **Trigger**: Add player to comparison from profile view, then access comparison view
-- **Progression**: View player profile → Click "Add to Comparison" → Repeat for other players → Click "View Comparison" → See side-by-side stats → Sort by fortune, garden level, or visitors → Identify top performers → Remove players as needed
-- **Success criteria**: Supports multiple players, visual indicators for top stats, maintains comparison list between sessions, clear ranking display, easy player removal
+  - Tabs (for switching between equipment/pets/garden) - Organize profile sections
+  - Alert (for errors and API issues) - Clear error messaging
 
-## Edge Case Handling
-- **Invalid Username**: Display clear error message when player not found or doesn't play Skyblock
-- **API Rate Limits**: Handle 429 responses gracefully with retry suggestions and cooldown messaging
+
+  - Fortune breakdown
+  - Profile card selector with cute profile name display
+- **States**: 
 - **No Skyblock Profiles**: Show helpful message when player has no Skyblock profiles
 - **Multiple Profiles**: Allow user to select which profile to analyze
 - **Missing Data**: Handle incomplete profile data (no garden, no pets, missing equipment) with fallback displays
@@ -144,25 +144,25 @@ Animations should feel smooth and purposeful, guiding the user through data load
   - Buttons: Default (solid with glow), Hover (brighten + scale 102%), Active (scale 98%), Loading (spinner), Disabled (dimmed)
   - Inputs: Default (border), Focus (glow ring in primary color), Error (red border + shake), Success (green checkmark)
   - Cards: Default (subtle shadow), Hover (lift + glow for interactive), Loading (skeleton overlay)
-  - Badges: Static color-coded display based on rarity tier
 
-- **Icon Selection**: 
+
+
   - MagnifyingGlass for search
-  - User/UserCircle for player profiles
+
   - Sword/Shield for equipment
-  - PawPrint for pets
+
   - Plant/Leaf/FlowerLotus for garden/crops
-  - Sparkles for fortune/enchantments
+
   - ChartBar for statistics
-  - Trophy for milestones
+
   - Package/Backpack for inventory items
-  - Lightning for farming speed stats
+
   - Coins for economy values
   - Book/BookOpen for guides library
   - Pencil for editing guides
   - Eye for preview mode
   - Star for favoriting guides
-  - FloppyDisk for saving
+
   - TrendUp for comparison view
   - Plus for creating new items
   - ArrowLeft for navigation back
@@ -170,15 +170,15 @@ Animations should feel smooth and purposeful, guiding the user through data load
 - **Spacing**: 
   - Container padding: p-8 on desktop, p-4 on mobile
   - Card gaps: gap-6 for main sections, gap-4 for subsections
-  - Section margins: mb-12 between major sections, mb-6 for subsections
+
   - Grid layouts: gap-4 for equipment grids
   - Stat displays: gap-2 for tight number+label pairs
 
-- **Mobile**: 
+
   - Search bar remains prominent at top
-  - Equipment grid adapts from 4-column to 2-column to single column
+
   - Stats cards stack vertically on mobile
-  - Profile selector switches to vertical list
+
   - Touch targets 44px minimum
   - Reduced font sizes (H1 to 28px, body to 14px)
   - Bottom padding increased for thumb-friendly scrolling

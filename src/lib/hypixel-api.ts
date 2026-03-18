@@ -524,7 +524,7 @@ export function parseGarden(memberData: any): {
   const experience = gardenData.garden_experience || gardenData.experience || 0
   console.log('🔍 Garden experience:', experience)
   
-   gardenData.resources_collected || gardenData.crops || {}
+  const cropMilestones = gardenData.resources_collected || gardenData.crops || {}
   console.log('🔍 Crop milestones:', cropMilestones)
   
   const uniqueVisitors = gardenData.unique_visitors || gardenData.unique_visitors_2 || []
@@ -533,8 +533,7 @@ export function parseGarden(memberData: any): {
   const cropMilestoneValues = [
     1000, 5000, 25000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000, 25000000, 50000000, 100000000
   ]
-  ]
-perience)
+  
   const level = calculateGardenLevel(experience)
   
   const crops = Object.entries(cropMilestones)
@@ -551,42 +550,40 @@ perience)
           break
         }
       }
-      }
       
       return {
+        name: crop.toLowerCase().replace(/_/g, ' '),
         harvested: harvestedCount,
         milestone: currentMilestone
-        milestone: currentMilestone
-    })
+      }
     })
     .sort((a, b) => b.harvested - a.harvested)
-    .sort((a, b) => b.harvested - a.harvested)
+  
   let visitorCount = 0
-  let visitorCount = 0eVisitors)) {
-  if (Array.isArray(uniqueVisitors)) {th
+  if (Array.isArray(uniqueVisitors)) {
     visitorCount = uniqueVisitors.length
   } else if (typeof uniqueVisitors === 'number') {
-    visitorCount = uniqueVisitorseVisitors === 'object') {
+    visitorCount = uniqueVisitors
+  } else if (uniqueVisitors && typeof uniqueVisitors === 'object') {
     const visitorKeys = Object.keys(uniqueVisitors)
     visitorCount = visitorKeys.length
   }
-  }
+  
   const compostData = gardenData.compost || gardenData.composter?.organic_matter
-  let compostTotal = 0
   let compostTotal = 0
   if (typeof compostData === 'number') {
     compostTotal = compostData
   } else if (compostData && typeof compostData === 'object') {
+    compostTotal = Object.values(compostData).reduce((sum: number, val: any) => sum + (typeof val === 'number' ? val : 0), 0)
   }
-  }
-t:', {
+  
+  console.log('✅ parseGarden result:', {
     level,
     cropsCount: crops.length,
     visitors: visitorCount,
     compost: compostTotal
   })
 
-  return {
   return {
     level,
     crops,
@@ -610,6 +607,7 @@ function calculateGardenLevel(experience: number): number {
   return 1
 }
 
+function formatCropName(crop: string): string {
   if (!crop || typeof crop !== 'string') {
     return 'Unknown'
   }

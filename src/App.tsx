@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { MagnifyingGlass, User, Sparkle, Plant, PawPrint, Backpack, Warning, ArrowLeft, TrendUp, Plus } from '@phosphor-icons/react'
+import { MagnifyingGlass, User, Sparkle, Plant, PawPrint, Backpack, Warning, ArrowLeft, TrendUp, Plus, Book } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -24,6 +24,7 @@ import {
   type HypixelProfile
 } from '@/lib/hypixel-api'
 import { ComparisonView } from '@/components/ComparisonView'
+import { GuidesView } from '@/components/GuidesView'
 import type { ProfileData } from '@/types'
 
 interface PlayerData {
@@ -49,6 +50,7 @@ function App() {
   const [recentSearches, setRecentSearches] = useKV<string[]>('recent-searches', [])
   const [comparisonPlayers, setComparisonPlayers] = useKV<ComparisonPlayer[]>('comparison-players', [])
   const [showComparison, setShowComparison] = useState(false)
+  const [showGuides, setShowGuides] = useState(false)
 
   const searchPlayer = async () => {
     if (!searchQuery.trim()) {
@@ -182,6 +184,10 @@ function App() {
     setComparisonPlayers([])
     setShowComparison(false)
     toast.success('Comparison cleared')
+  }
+
+  if (showGuides) {
+    return <GuidesView onClose={() => setShowGuides(false)} />
   }
 
   if (showComparison && comparisonPlayers && comparisonPlayers.length > 0) {
@@ -552,26 +558,36 @@ function App() {
           <p className="text-muted-foreground font-body text-lg">
             Analyze farming fortune, equipment, pets, and garden progress
           </p>
-          {comparisonPlayers && comparisonPlayers.length > 0 && (
-            <div className="mt-4 flex items-center justify-center gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowComparison(true)}
-                className="gap-2"
-              >
-                <TrendUp size={20} weight="fill" />
-                View Comparison ({comparisonPlayers.length})
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearComparison}
-                className="text-muted-foreground"
-              >
-                Clear
-              </Button>
-            </div>
-          )}
+          <div className="mt-4 flex items-center justify-center gap-3 flex-wrap">
+            {comparisonPlayers && comparisonPlayers.length > 0 && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowComparison(true)}
+                  className="gap-2"
+                >
+                  <TrendUp size={20} weight="fill" />
+                  View Comparison ({comparisonPlayers.length})
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearComparison}
+                  className="text-muted-foreground"
+                >
+                  Clear
+                </Button>
+              </>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => setShowGuides(true)}
+              className="gap-2"
+            >
+              <Book size={20} weight="fill" />
+              Farming Guides
+            </Button>
+          </div>
         </motion.header>
 
         <motion.div

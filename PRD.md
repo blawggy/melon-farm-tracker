@@ -47,6 +47,20 @@ A Minecraft Hypixel Skyblock farming analyzer that fetches real player data from
 - **Progression**: Profile data → Extract garden data → Parse crop milestones → Parse visitor completions → Display garden level, unlocked plots, crop progress bars → Extract greenhouse data → Display greenhouse status
 - **Success criteria**: Accurate garden level calculation, shows all crops with progress, displays visitor milestones, greenhouse level and upgrades
 
+### Farming Plot Guides
+- **Functionality**: Create, edit, and manage custom farming plot guides with full markdown support
+- **Purpose**: Allow users to document farming strategies, plot layouts, and optimization tips for different crops
+- **Trigger**: Click "Farming Guides" button from main page or navigation
+- **Progression**: Access guides view → Browse existing guides → Create new guide → Enter title and plot type → Write content using markdown editor → Preview formatted content → Save guide → Star important guides → Edit or delete guides as needed
+- **Success criteria**: Guides persist between sessions, markdown renders correctly with proper styling, users can organize guides by plot type, starred guides appear at top, smooth edit/preview toggle, search and filter functionality
+
+### Player Comparison
+- **Functionality**: Compare farming stats across multiple players side-by-side
+- **Purpose**: Benchmark performance against friends or top farmers
+- **Trigger**: Add player to comparison from profile view, then access comparison view
+- **Progression**: View player profile → Click "Add to Comparison" → Repeat for other players → Click "View Comparison" → See side-by-side stats → Sort by fortune, garden level, or visitors → Identify top performers → Remove players as needed
+- **Success criteria**: Supports multiple players, visual indicators for top stats, maintains comparison list between sessions, clear ranking display, easy player removal
+
 ## Edge Case Handling
 - **Invalid Username**: Display clear error message when player not found or doesn't play Skyblock
 - **API Rate Limits**: Handle 429 responses gracefully with retry suggestions and cooldown messaging
@@ -55,6 +69,9 @@ A Minecraft Hypixel Skyblock farming analyzer that fetches real player data from
 - **Missing Data**: Handle incomplete profile data (no garden, no pets, missing equipment) with fallback displays
 - **API Timeout**: Show loading state with timeout fallback after 10 seconds
 - **Offline API**: Display cached data if available, otherwise show service unavailable message
+- **Empty Guides**: Show helpful empty state when no guides exist with prompt to create first guide
+- **Markdown Errors**: Render markdown safely, sanitize potentially dangerous HTML
+- **Guide Deletion**: Require confirmation before deleting guides to prevent accidental loss
 
 ## Design Direction
 The design should evoke the nostalgic, blocky charm of Minecraft with a farming and data-analysis focus. Players should feel like this is a premium stat-tracking tool that could exist within Hypixel Skyblock, incorporating the game's signature greens, golds, and Skyblock menu aesthetics while presenting complex data in an easily digestible format.
@@ -135,6 +152,14 @@ Animations should feel smooth and purposeful, guiding the user through data load
   - Package/Backpack for inventory items
   - Lightning for farming speed stats
   - Coins for economy values
+  - Book/BookOpen for guides library
+  - Pencil for editing guides
+  - Eye for preview mode
+  - Star for favoriting guides
+  - FloppyDisk for saving
+  - TrendUp for comparison view
+  - Plus for creating new items
+  - ArrowLeft for navigation back
 
 - **Spacing**: 
   - Container padding: p-8 on desktop, p-4 on mobile

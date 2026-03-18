@@ -428,9 +428,6 @@ function extractFortuneFromItem(item: any): number {
 }
 
 function calculatePetFortune(pet: any): number {
-    return 0
-    return 0
-
   const farmingPets: Record<string, { formula: (level: number) => number }> = {
     'MOOSHROOM_COW': { formula: (level) => Math.floor(level * 0.5) },
     'BEE': { formula: (level) => Math.floor(level * 0.3) },
@@ -442,13 +439,13 @@ function calculatePetFortune(pet: any): number {
     return 0
   }
 
-  }.exp ? calculatePetLevel(pet.exp, pet.tier || 'COMMON') : 1
- return petConfig.formula(level)
-}
-
+  const level = pet.exp ? calculatePetLevel(pet.exp, pet.tier || 'COMMON') : 1
+  return petConfig.formula(level)
 }
 
 function calculatePetLevel(exp: number, tier: string): number {
+  const maxLevels: Record<string, number> = {
+    COMMON: 100,
     UNCOMMON: 100,
     RARE: 100,
     EPIC: 100,
@@ -458,26 +455,29 @@ function calculatePetLevel(exp: number, tier: string): number {
 
   const expPerLevel = tier === 'MYTHIC' ? 25000 : 10000
   const maxLevel = maxLevels[tier] || 100
-  const expPerLevel = tier === 'MYTHIC' ? 25000 : 10000
   return Math.min(Math.floor(exp / expPerLevel) + 1, maxLevel)
+}
 
-  return Math.min(Math.floor(exp / expPerLevel) + 1, maxLevel)
-function cleanItemName(name: string): string {
-{
 function cleanItemName(name: string): string {
   if (!name || typeof name !== 'string') {
     return 'Unknown'
   }
+  
+  return name
+    .replace(/§[0-9a-fk-or]/gi, '')
+    .replace(/[^\w\s]/g, '')
+    .trim()
+}
 
 function formatPetName(type: string): string {
   if (!type || typeof type !== 'string') {
     return 'Unknown Pet'
-  if (!type || typeof type !== 'string') {
-    return 'Unknown Pet'
-    .split('_')
+  }
+  
   return type
     .split('_')
     .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+    .join(' ')
 
 export function parseGarden(memberData: any): {
   level: number

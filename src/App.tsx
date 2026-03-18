@@ -10,7 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { MagnifyingGlass, User, Sparkle, Plant, PawPrint, Backpack, Warning, ArrowLeft, TrendUp, Plus, Book } from '@phosphor-icons/react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { MagnifyingGlass, User, Sparkle, Plant, PawPrint, Backpack, Warning, ArrowLeft, TrendUp, Plus, Book, Medal } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -23,6 +24,7 @@ import {
   parsePet,
   type HypixelProfile
 } from '@/lib/hypixel-api'
+import { calculateMilestoneBadge } from '@/lib/utils'
 import { ComparisonView } from '@/components/ComparisonView'
 import { GuidesView } from '@/components/GuidesView'
 import type { ProfileData } from '@/types'
@@ -201,6 +203,9 @@ function App() {
   }
 
   if (profileData && selectedProfile) {
+    const totalCropsHarvested = profileData.garden?.crops.reduce((sum, crop) => sum + crop.harvested, 0) || 0
+    const milestoneBadge = calculateMilestoneBadge(totalCropsHarvested)
+
     return (
       <div className="min-h-screen bg-background">
         <Toaster />
@@ -240,11 +245,45 @@ function App() {
           <header className="mb-8">
             <div className="flex items-center gap-3 mb-2">
               <Plant size={40} weight="fill" className="text-secondary" />
-              <div>
-                <h1 className="text-3xl md:text-4xl text-primary tracking-tight">
-                  {playerData?.username}
-                </h1>
-                <p className="text-muted-foreground font-body text-sm">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h1 className="text-3xl md:text-4xl text-primary tracking-tight">
+                    {playerData?.username}
+                  </h1>
+                  {milestoneBadge && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div 
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 transition-transform hover:scale-105"
+                            style={{ 
+                              borderColor: milestoneBadge.color,
+                              backgroundColor: `color-mix(in oklch, ${milestoneBadge.color} 15%, transparent)`
+                            }}
+                          >
+                            <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <rect x="2" y="2" width="12" height="12" rx="1" fill={milestoneBadge.color} />
+                              <rect x="3" y="3" width="10" height="10" rx="0.5" fill="currentColor" opacity="0.15" />
+                            </svg>
+                            <span className="font-bold text-sm font-mono" style={{ color: milestoneBadge.color }}>
+                              {milestoneBadge.tier}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="font-mono font-semibold">{milestoneBadge.tier} Milestone</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatNumber(totalCropsHarvested)} crops harvested
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {formatNumber(milestoneBadge.minCrops)} - {milestoneBadge.maxCrops ? formatNumber(milestoneBadge.maxCrops) : '∞'}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+                <p className="text-muted-foreground font-body text-sm mt-1">
                   Profile: {selectedProfile.cute_name}
                 </p>
               </div>
@@ -257,6 +296,65 @@ function App() {
             transition={{ duration: 0.3 }}
             className="space-y-6"
           >
+            {profileData.garden && totalCropsHarvested > 0 && (
+              <Card className="p-6 border-2 bg-gradient-to-br from-card to-muted/30">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground font-body">
+                  <Medal size={24} weight="fill" className="text-primary" />
+                  Crop Milestone Progress
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {[
+                    { tier: 'Iron', color: 'oklch(0.75 0.02 240)', min: 10_000_000, max: 20_000_000 },
+                    { tier: 'Gold', color: 'oklch(0.75 0.15 85)', min: 20_000_000, max: 40_000_000 },
+                    { tier: 'Emerald', color: 'oklch(0.65 0.18 150)', min: 40_000_000, max: 60_000_000 },
+                    { tier: 'Diamond', color: 'oklch(0.75 0.15 200)', min: 60_000_000, max: 100_000_000 },
+                    { tier: 'Netherite', color: 'oklch(0.35 0.02 240)', min: 100_000_000, max: null }
+                  ].map((milestone) => {
+                    const isAchieved = totalCropsHarvested >= milestone.min
+                    const isCurrent = milestoneBadge?.tier === milestone.tier
+                    
+                    return (
+                      <TooltipProvider key={milestone.tier}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div 
+                              className={`p-3 rounded-lg border-2 transition-all ${
+                                isCurrent ? 'scale-105' : ''
+                              } ${isAchieved ? '' : 'opacity-40'}`}
+                              style={{ 
+                                borderColor: milestone.color,
+                                backgroundColor: `color-mix(in oklch, ${milestone.color} ${isAchieved ? '20' : '10'}%, transparent)`,
+                                ...(isCurrent ? { boxShadow: `0 0 0 2px ${milestone.color}` } : {})
+                              }}
+                            >
+                              <div className="flex flex-col items-center gap-2">
+                                <svg width="24" height="24" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <rect x="2" y="2" width="12" height="12" rx="1" fill={milestone.color} opacity={isAchieved ? 1 : 0.5} />
+                                  <rect x="3" y="3" width="10" height="10" rx="0.5" fill="currentColor" opacity="0.15" />
+                                </svg>
+                                <span className="font-bold text-xs font-mono text-center" style={{ color: milestone.color }}>
+                                  {milestone.tier}
+                                </span>
+                              </div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="font-mono font-semibold">{milestone.tier} Milestone</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatNumber(milestone.min)} - {milestone.max ? formatNumber(milestone.max) : '∞'} crops
+                            </p>
+                            {isAchieved && (
+                              <p className="text-xs text-green-500 mt-1">✓ Achieved</p>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )
+                  })}
+                </div>
+              </Card>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="p-6 border-2 border-primary/20 bg-card/50 backdrop-blur">
                 <div className="flex items-center gap-3 mb-3">

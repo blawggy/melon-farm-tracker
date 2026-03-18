@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Progress } from '@/components/ui/progress'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { 
   X, 
   Sparkle, 
@@ -16,6 +17,7 @@ import {
   TrendUp,
   Medal
 } from '@phosphor-icons/react'
+import { calculateMilestoneBadge } from '@/lib/utils'
 import type { ProfileData } from '@/types'
 
 interface ComparisonPlayer {
@@ -137,51 +139,84 @@ export function ComparisonView({ players, onRemovePlayer, onClose }: ComparisonV
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
-          {sortedPlayers.map((player, index) => (
-            <motion.div
-              key={player.uuid}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Card className="p-6 border-2 relative">
-                {index === 0 && (
-                  <div className="absolute -top-3 -right-3">
-                    <Crown size={32} weight="fill" className="text-primary" />
-                  </div>
-                )}
-                
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-xl font-semibold text-foreground font-body">
-                        {player.username}
-                      </h3>
-                      {index < 3 && (
-                        <Medal 
-                          size={20} 
-                          weight="fill" 
-                          className={
-                            index === 0 ? 'text-primary' : 
-                            index === 1 ? 'text-secondary' : 
-                            'text-accent'
-                          } 
-                        />
-                      )}
+          {sortedPlayers.map((player, index) => {
+            const totalCrops = player.data.garden?.crops.reduce((sum, crop) => sum + crop.harvested, 0) || 0
+            const milestoneBadge = calculateMilestoneBadge(totalCrops)
+
+            return (
+              <motion.div
+                key={player.uuid}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card className="p-6 border-2 relative">
+                  {index === 0 && (
+                    <div className="absolute -top-3 -right-3">
+                      <Crown size={32} weight="fill" className="text-primary" />
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {player.profileName}
-                    </p>
+                  )}
+                  
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h3 className="text-xl font-semibold text-foreground font-body">
+                          {player.username}
+                        </h3>
+                        {index < 3 && (
+                          <Medal 
+                            size={20} 
+                            weight="fill" 
+                            className={
+                              index === 0 ? 'text-primary' : 
+                              index === 1 ? 'text-secondary' : 
+                              'text-accent'
+                            } 
+                          />
+                        )}
+                        {milestoneBadge && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div 
+                                  className="flex items-center gap-1.5 px-2 py-1 rounded border transition-transform hover:scale-105"
+                                  style={{ 
+                                    borderColor: milestoneBadge.color,
+                                    backgroundColor: `color-mix(in oklch, ${milestoneBadge.color} 15%, transparent)`
+                                  }}
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="2" y="2" width="12" height="12" rx="1" fill={milestoneBadge.color} />
+                                    <rect x="3" y="3" width="10" height="10" rx="0.5" fill="currentColor" opacity="0.15" />
+                                  </svg>
+                                  <span className="font-bold text-xs font-mono" style={{ color: milestoneBadge.color }}>
+                                    {milestoneBadge.tier}
+                                  </span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="font-mono font-semibold text-xs">{milestoneBadge.tier} Milestone</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatNumber(totalCrops)} crops
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {player.profileName}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onRemovePlayer(player.uuid)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <X size={16} />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onRemovePlayer(player.uuid)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <X size={16} />
-                  </Button>
-                </div>
 
                 <Separator className="mb-4" />
 
@@ -247,7 +282,7 @@ export function ComparisonView({ players, onRemovePlayer, onClose }: ComparisonV
                 </div>
               </Card>
             </motion.div>
-          ))}
+          )})}
         </div>
 
         <Card className="p-6 border-2 mb-8">

@@ -29,21 +29,24 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
       throw new Error('Username must be between 3 and 16 characters')
     }
 
+    const url = `https://api.mojang.com/users/profiles/minecraft/${encodeURIComponent(cleanUsername)}`
+    console.log('Fetching Mojang UUID for:', cleanUsername)
+    console.log('Request URL:', url)
+
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 8000)
 
-    const response = await fetch(
-      `https://api.mojang.com/users/profiles/minecraft/${encodeURIComponent(cleanUsername)}`,
-      {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        signal: controller.signal
-      }
-    )
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      signal: controller.signal
+    })
 
     clearTimeout(timeoutId)
+
+    console.log('Mojang API Response Status:', response.status)
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -56,6 +59,7 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
     }
 
     const data = await response.json()
+    console.log('Mojang API Response Data:', data)
     
     if (!data || !data.id || !data.name) {
       throw new Error('Invalid response from Mojang API')
@@ -63,6 +67,7 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
 
     return data
   } catch (error) {
+    console.error('Mojang API Error:', error)
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
         throw new Error('Request timeout - Mojang API took too long to respond')
@@ -76,6 +81,8 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
 export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfile[]> {
   try {
     const url = `https://api.hypixel.net/v2/skyblock/profiles?uuid=${uuid}`
+    console.log('Fetching Hypixel Skyblock profiles for UUID:', uuid)
+    console.log('Request URL:', url)
     
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 10000)
@@ -89,6 +96,8 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
     })
 
     clearTimeout(timeoutId)
+
+    console.log('Hypixel API Response Status:', response.status)
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -107,6 +116,8 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
     }
 
     const data: HypixelResponse = await response.json()
+    console.log('Hypixel API Response Data:', data)
+    console.log('Number of profiles found:', data.profiles?.length || 0)
 
     if (!data.success) {
       throw new Error('API request failed - the player may not have Skyblock API enabled')
@@ -118,6 +129,7 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
 
     return data.profiles
   } catch (error) {
+    console.error('Hypixel API Error:', error)
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
         throw new Error('Request timeout - Hypixel API took too long to respond')

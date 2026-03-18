@@ -501,12 +501,13 @@ export function parseGarden(memberData: any): {
   console.log('🔍 parseGarden: Checking for garden data...')
   console.log('🔍 memberData keys:', Object.keys(memberData))
   
-  const garden = memberData.garden || memberData.player_data?.garden
+  const gardenData = memberData.garden_player_data || memberData.garden || memberData.player_data?.garden
 
-  if (!garden) {
+  if (!gardenData) {
     console.log('⚠️ parseGarden: No garden data found')
     console.log('🔍 Available data:', {
       hasGarden: !!memberData.garden,
+      hasGardenPlayerData: !!memberData.garden_player_data,
       hasPlayerData: !!memberData.player_data,
       hasPlayerDataGarden: !!memberData.player_data?.garden
     })
@@ -519,50 +520,72 @@ export function parseGarden(memberData: any): {
   }
   
   console.log('✅ parseGarden: Found garden data')
+  console.log('🔍 Garden data keys:', Object.keys(gardenData))
 
-  const experience = garden.garden_experience || 0
-  const cropData = garden.crops || {}
-  const uniqueVisitors = garden.unique_visitors || []
+  const experience = gardenData.garden_experience || gardenData.experience || 0
+  console.log('🔍 Garden experience:', experience)
   
-  const milestones = [
-    1000, 5000, 25000, 100000, 250000, 500000, 1000000, 2500000, 5000000
+  const cropMilestones = gardenData.resources_collected || gardenData.crops || {}
+  console.log('🔍 Crop milestones:', cropMilestones)
+  
+  const uniqueVisitors = gardenData.unique_visitors || gardenData.unique_visitors_2 || []
+  console.log('🔍 Unique visitors:', uniqueVisitors)
+  
+  const cropMilestoneValues = [
+    1000, 5000, 25000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000, 25000000, 50000000, 100000000
   ]
 
   const level = calculateGardenLevel(experience)
-  const crops = Object.entries(cropData).map(([crop, data]: [string, any]) => {
-    const harvested = typeof data === 'number' ? data : (data?.harvested || 0)
-    
-    let currentMilestone = milestones[0]
-    for (let i = 0; i < milestones.length; i++) {
-      if (harvested >= milestones[i]) {
-        currentMilestone = milestones[i + 1] || milestones[i]
-      } else {
-        currentMilestone = milestones[i]
-        break
+  console.log('🔍 Calculated garden level:', level)
+  
+  const crops = Object.entries(cropMilestones)
+    .filter(([crop]) => !crop.startsWith('MUSHROOM') && !crop.includes('LOG') && !crop.includes('WART'))
+    .map(([crop, harvested]: [string, any]) => {
+      const harvestedCount = typeof harvested === 'number' ? harvested : (harvested?.value || harvested?.amount || 0)
+      
+      let currentMilestone = cropMilestoneValues[0]
+      for (let i = 0; i < cropMilestoneValues.length; i++) {
+        if (harvestedCount >= cropMilestoneValues[i]) {
+          currentMilestone = cropMilestoneValues[i + 1] || cropMilestoneValues[i]
+        } else {
+          currentMilestone = cropMilestoneValues[i]
+          break
+        }
       }
-    }
-    
-    return {
-      name: formatCropName(crop),
-      harvested,
-      milestone: currentMilestone
-    }
-  })
+      
+      return {
+        name: formatCropName(crop),
+        harvested: harvestedCount,
+        milestone: currentMilestone
+      }
+    })
+    .filter(crop => crop.harvested > 0)
+    .sort((a, b) => b.harvested - a.harvested)
 
   let visitorCount = 0
   if (Array.isArray(uniqueVisitors)) {
     visitorCount = uniqueVisitors.length
   } else if (typeof uniqueVisitors === 'number') {
     visitorCount = uniqueVisitors
+  } else if (uniqueVisitors && typeof uniqueVisitors === 'object') {
+    const visitorKeys = Object.keys(uniqueVisitors)
+    visitorCount = visitorKeys.length
   }
   
-  const compostData = garden.compost || garden.compost_upgrades
+  const compostData = gardenData.compost || gardenData.composter?.organic_matter
   let compostTotal = 0
   if (typeof compostData === 'number') {
     compostTotal = compostData
   } else if (compostData && typeof compostData === 'object') {
-    compostTotal = compostData.total || 0
+    compostTotal = compostData.total || compostData.amount || 0
   }
+
+  console.log('✅ parseGarden result:', {
+    level,
+    cropsCount: crops.length,
+    visitors: visitorCount,
+    compost: compostTotal
+  })
 
   return {
     level,
@@ -610,8 +633,12 @@ export function parseEquipment(memberData: any): {
   }
 
   if (!memberData) {
+    console.log('⚠️ parseEquipment: No member data provided')
     return result
   }
+
+  console.log('🔍 parseEquipment: Checking for inventory data...')
+  console.log('🔍 memberData keys:', Object.keys(memberData))
 
   const parseNBTData = (nbtData: string | any): any[] => {
     if (!nbtData) return []
@@ -655,12 +682,19 @@ export function parseEquipment(memberData: any): {
 
   const inventory = memberData.inventory || memberData.inv_contents
   
+  if (!inventory) {
+    console.log('⚠️ parseEquipment: No inventory data found')
+    return result
+  }
+
+  console.log('🔍 parseEquipment inventory keys:', Object.keys(inventory))
+  
   if (inventory?.inv_armor?.data) {
+    console.log('✅ parseEquipment: Found armor data')
     const armorItems = parseNBTData(inventory.inv_armor.data)
     result.armor = armorItems
       .filter((item: any) => item && item.tag?.display?.Name)
-      .map((item: any, index: number) => {
-        const slotNames = ['Boots', 'Leggings', 'Chestplate', 'Helmet']
+      .map((item: any) => {
         const displayName = item.tag.display.Name
         const rarity = item.tag?.ExtraAttributes?.rarity || 'COMMON'
         
@@ -669,15 +703,29 @@ export function parseEquipment(memberData: any): {
           rarity: rarity.toString().toUpperCase()
         }
       })
+  } else {
+    console.log('⚠️ parseEquipment: No armor data found')
   }
 
   if (inventory?.equipment_contents?.data) {
+    console.log('✅ parseEquipment: Found equipment data')
     result.equipment = parseItems(inventory.equipment_contents.data)
+  } else {
+    console.log('⚠️ parseEquipment: No equipment data found')
   }
 
   if (inventory?.bag_contents?.talisman_bag?.data) {
+    console.log('✅ parseEquipment: Found accessories data')
     result.accessories = parseItems(inventory.bag_contents.talisman_bag.data)
+  } else {
+    console.log('⚠️ parseEquipment: No accessories data found')
   }
+
+  console.log('✅ parseEquipment result:', {
+    armorCount: result.armor.length,
+    equipmentCount: result.equipment.length,
+    accessoriesCount: result.accessories.length
+  })
 
   return result
 }
@@ -689,23 +737,45 @@ export function parsePet(memberData: any): {
   type: string
 } | null {
   if (!memberData) {
+    console.log('⚠️ parsePet: No member data provided')
     return null
   }
+
+  console.log('🔍 parsePet: Checking for pet data...')
+  console.log('🔍 memberData keys:', Object.keys(memberData))
 
   const pets = memberData.pets_data?.pets || memberData.pets
   
   if (!pets || !Array.isArray(pets) || pets.length === 0) {
+    console.log('⚠️ parsePet: No pets found')
+    console.log('🔍 Available data:', {
+      hasPetsData: !!memberData.pets_data,
+      hasPets: !!memberData.pets,
+      petsType: typeof pets,
+      isArray: Array.isArray(pets)
+    })
     return null
   }
+
+  console.log('✅ parsePet: Found', pets.length, 'pets')
 
   const activePet = pets.find((p: any) => p && p.active === true)
 
   if (!activePet || !activePet.type) {
+    console.log('⚠️ parsePet: No active pet found')
+    console.log('🔍 First pet:', pets[0])
     return null
   }
 
   const tier = activePet.tier || 'COMMON'
   const exp = activePet.exp || 0
+
+  console.log('✅ parsePet: Found active pet:', {
+    type: activePet.type,
+    tier,
+    exp,
+    level: calculatePetLevel(exp, tier)
+  })
 
   return {
     name: formatPetName(activePet.type),

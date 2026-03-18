@@ -114,10 +114,27 @@ function App() {
         throw new Error('Player data not found in this profile')
       }
 
+      console.log('📦 Full member data structure:', memberData)
+      console.log('📦 Member data keys:', Object.keys(memberData))
+      
+      if (memberData.garden_player_data) {
+        console.log('🌱 garden_player_data found:', Object.keys(memberData.garden_player_data))
+      }
+      
+      if (memberData.inventory) {
+        console.log('🎒 inventory found:', Object.keys(memberData.inventory))
+      }
+      
+      if (memberData.pets_data) {
+        console.log('🐾 pets_data found:', Object.keys(memberData.pets_data))
+      }
+
       const fortune = parseFarmingFortune(memberData)
       const garden = parseGarden(memberData)
       const equipment = parseEquipment(memberData)
       const pet = parsePet(memberData)
+
+      console.log('✅ Parsed data:', { fortune, garden, equipment, pet })
 
       setProfileData({ fortune, garden, equipment, pet })
       toast.success('Profile loaded!')

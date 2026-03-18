@@ -428,12 +428,10 @@ function extractFortuneFromItem(item: any): number {
 }
 
 function calculatePetFortune(pet: any): number {
-  if (!pet || !pet.type) {
     return 0
-  }
+    return 0
 
   const farmingPets: Record<string, { formula: (level: number) => number }> = {
-    'ELEPHANT': { formula: (level) => Math.floor(level * 0.75) },
     'MOOSHROOM_COW': { formula: (level) => Math.floor(level * 0.5) },
     'BEE': { formula: (level) => Math.floor(level * 0.3) },
     'RABBIT': { formula: (level) => Math.floor(level * 0.2) }
@@ -444,13 +442,13 @@ function calculatePetFortune(pet: any): number {
     return 0
   }
 
-  const level = pet.exp ? calculatePetLevel(pet.exp, pet.tier || 'COMMON') : 1
-  return petConfig.formula(level)
+  }.exp ? calculatePetLevel(pet.exp, pet.tier || 'COMMON') : 1
+ return petConfig.formula(level)
+}
+
 }
 
 function calculatePetLevel(exp: number, tier: string): number {
-  const maxLevels: Record<string, number> = {
-    COMMON: 100,
     UNCOMMON: 100,
     RARE: 100,
     EPIC: 100,
@@ -460,41 +458,41 @@ function calculatePetLevel(exp: number, tier: string): number {
 
   const expPerLevel = tier === 'MYTHIC' ? 25000 : 10000
   const maxLevel = maxLevels[tier] || 100
+  const expPerLevel = tier === 'MYTHIC' ? 25000 : 10000
+  return Math.min(Math.floor(exp / expPerLevel) + 1, maxLevel)
 
   return Math.min(Math.floor(exp / expPerLevel) + 1, maxLevel)
-}
-
+function cleanItemName(name: string): string {
+{
 function cleanItemName(name: string): string {
   if (!name || typeof name !== 'string') {
     return 'Unknown'
   }
-  return name.replace(/§[0-9a-fk-or]/gi, '').trim()
-}
 
 function formatPetName(type: string): string {
   if (!type || typeof type !== 'string') {
     return 'Unknown Pet'
-  }
+  if (!type || typeof type !== 'string') {
+    return 'Unknown Pet'
+    .split('_')
   return type
     .split('_')
     .map(word => word.charAt(0) + word.slice(1).toLowerCase())
-    .join(' ')
-}
 
 export function parseGarden(memberData: any): {
   level: number
   crops: Array<{ name: string; harvested: number; milestone: number }>
+  level: number
+  crops: Array<{ name: string; harvested: number; milestone: number }>
   visitors: number
-  compost: number
-} | null {
+  if (!memberData) {
+    return null
   if (!memberData) {
     return null
   }
 
   const garden = memberData.garden
 
-  if (!garden) {
-    return null
   }
 
   const experience = garden.garden_experience || 0
@@ -503,10 +501,12 @@ export function parseGarden(memberData: any): {
   const cropData = garden.crops || {}
   const crops = Object.entries(cropData).map(([crop, data]: [string, any]) => ({
     name: formatCropName(crop),
+  const crops = Object.entries(cropData).map(([crop, data]: [string, any]) => ({
+    name: formatCropName(crop),
     harvested: data?.harvested || 0,
     milestone: data?.milestone || 1
-  }))
-
+  }))visitors
+  let visitorCount = 0
   const uniqueVisitors = garden.unique_visitors
   let visitorCount = 0
   
@@ -516,20 +516,20 @@ export function parseGarden(memberData: any): {
     visitorCount = uniqueVisitors
   }
 
-  return {
-    level,
     crops,
     visitors: visitorCount,
     compost: garden.compost?.total || 0
-  }
+    visitors: visitorCount,
 }
 
 function calculateGardenLevel(experience: number): number {
   const levels = [
     0, 1000, 2500, 5000, 10000, 20000, 35000, 55000, 80000, 110000,
     145000, 185000, 230000, 280000, 335000, 395000, 460000, 530000, 605000, 685000
-  ]
-
+    0, 1000, 2500, 5000, 10000, 20000, 35000, 55000, 80000, 110000,
+    145000, 185000, 230000, 280000, 335000, 395000, 460000, 530000, 605000, 685000
+  for (let i = levels.length - 1; i >= 0; i--) {
+    if (experience >= levels[i]) {
   for (let i = levels.length - 1; i >= 0; i--) {
     if (experience >= levels[i]) {
       return i + 1
@@ -537,17 +537,15 @@ function calculateGardenLevel(experience: number): number {
   }
 
   return 1
-}
-
-function formatCropName(crop: string): string {
+}tion formatCropName(crop: string): string {
+  if (!crop || typeof crop !== 'string') {
+    return 'Unknown'
   if (!crop || typeof crop !== 'string') {
     return 'Unknown'
   }
-  return crop
-    .toLowerCase()
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
+    .split('_')
 }
 
 export function parseEquipment(memberData: any): {
@@ -557,6 +555,8 @@ export function parseEquipment(memberData: any): {
 } {
   const result = {
     armor: [] as Array<{ name: string; rarity: string }>,
+  const result = {
+    armor: [] as Array<{ name: string; rarity: string }>,ng }>
     equipment: [] as Array<{ name: string; rarity: string }>,
     accessories: [] as Array<{ name: string; rarity: string }>
   }
@@ -567,8 +567,6 @@ export function parseEquipment(memberData: any): {
 
   const inventory = memberData.inventory || {}
 
-  const parseItems = (items: any): Array<{ name: string; rarity: string }> => {
-    if (!items) return []
     
     let itemArray: any[] = []
     if (Array.isArray(items)) {
@@ -578,49 +576,49 @@ export function parseEquipment(memberData: any): {
     }
     
     return itemArray
-      .filter(item => item?.tag?.display?.Name)
-      .map(item => ({
-        name: cleanItemName(item.tag.display.Name),
+    )
+    return itemArray
+      .filter(item => item?.tag?.display?.Name),
         rarity: (item.tag?.ExtraAttributes?.rarity || 'COMMON').toUpperCase()
       }))
-  }
+        rarity: (item.tag?.ExtraAttributes?.rarity || 'COMMON').toUpperCase()
 
   result.armor = parseItems(inventory.inv_armor?.data)
   result.equipment = parseItems(inventory.equipment_contents?.data)
+  result.armor = parseItems(inventory.inv_armor?.data)
+  result.equipment = parseItems(inventory.equipment_contents?.data)
   result.accessories = parseItems(inventory.bag_contents?.talisman_bag?.data)
-
-  return result
 }
+  return result
+export function parsePet(memberData: any): {
 
 export function parsePet(memberData: any): {
   name: string
   level: number
   rarity: string
-  type: string
+  type: stringata) {
 } | null {
-  if (!memberData) {
-    return null
   }
-
+    return null
   const pets = memberData.pets_data?.pets
   
+  const pets = memberData.pets_data?.pets
+    return null
   if (!pets || !Array.isArray(pets) || pets.length === 0) {
     return null
-  }
+  }onst activePet = pets.find((p: any) => p && p.active === true)
 
   const activePet = pets.find((p: any) => p && p.active === true)
 
   if (!activePet || !activePet.type) {
-    return null
-  }
 
   const tier = activePet.tier || 'COMMON'
   const exp = activePet.exp || 0
+  const tier = activePet.tier || 'COMMON'
+  const exp = activePet.exp || 0
 
-  return {
-    name: formatPetName(activePet.type),
     level: calculatePetLevel(exp, tier),
     rarity: tier.toLowerCase(),
-    type: activePet.type
-  }
+    level: calculatePetLevel(exp, tier),
+    rarity: tier.toLowerCase(),
 }

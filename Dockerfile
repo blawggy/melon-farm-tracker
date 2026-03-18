@@ -2,9 +2,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY . .
 
-RUN npm ci
+FROM node:
 
 COPY . .
 
@@ -18,6 +18,6 @@ RUN npm install -g serve
 
 COPY --from=builder /app/dist /app/dist
 
-EXPOSE 3000
+
 
 CMD ["serve", "-s", "dist", "-l", "3000"]

@@ -12,12 +12,12 @@ import {
   Sparkle, 
   Plant, 
   User, 
-  PawPrint, 
   Crown,
   TrendUp,
   Medal
 } from '@phosphor-icons/react'
 import { calculateMilestoneBadge } from '@/lib/utils'
+import { getCropIcon, getPetIcon, getIconEmoji } from '@/lib/skyblock-icons'
 import type { ProfileData } from '@/types'
 
 interface ComparisonPlayer {
@@ -267,7 +267,7 @@ export function ComparisonView({ players, onRemovePlayer, onClose }: ComparisonV
                   {player.data.pet && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center gap-3">
-                        <PawPrint size={24} weight="fill" className={getRarityColor(player.data.pet.rarity)} />
+                        <span className="text-3xl">{getIconEmoji(getPetIcon(player.data.pet.type))}</span>
                         <div className="flex-1">
                           <p className={`text-sm font-mono font-semibold ${getRarityColor(player.data.pet.rarity)}`}>
                             {player.data.pet.name}

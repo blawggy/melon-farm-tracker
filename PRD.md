@@ -1,10 +1,12 @@
 # Planning Guide
 
+A Hypixel Skyblock farming analyzer that provides detailed stats tracking for farming fortune, equipment, pets, and garden progression with visual crop/pet icons.
+
 **Experience Qualities**: 
 
 **Experience Qualities**: 
 1. **Data-driven** - Real-time fetching of player stats from Hypixel API provides accurate, up-to-date farming information
-2. **Comprehensive** - Displays all farming-related stats including fortune breakdown, equipment, pets, and garden progress
+2. **Comprehensive** - Displays all farming-related stats including fortune breakdown, equipment, pets, and garden progress with emoji icons
 3. **Game-authentic** - Visual design mirrors Minecraft's aesthetic with blocky elements and familiar Skyblock color schemes
 
 - **Progression**: Enter username → Click search → Fetch player UUID from Mojang API → Fetch Skyblock prof

@@ -15,6 +15,7 @@ import { MagnifyingGlass, User, Sparkle, Plant, PawPrint, Backpack, Warning, Arr
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion, AnimatePresence } from 'framer-motion'
+import { getCropIcon, getPetIcon, getEquipmentIcon, getIconEmoji } from '@/lib/skyblock-icons'
 import {
   fetchMinecraftUUID,
   fetchSkyblockProfiles,
@@ -510,16 +511,22 @@ function App() {
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-3">Armor</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {profileData.equipment.armor.map((item, i) => (
-                            <div key={i} className="p-4 bg-muted/50 rounded-lg">
-                              <p className={`text-sm font-mono font-medium ${getRarityColor(item.rarity)}`}>
-                                {item.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1 capitalize">
-                                {item.rarity}
-                              </p>
-                            </div>
-                          ))}
+                          {profileData.equipment.armor.map((item, i) => {
+                            const itemIcon = getEquipmentIcon(item.name)
+                            return (
+                              <div key={i} className="p-4 bg-muted/50 rounded-lg flex items-center gap-3">
+                                <span className="text-2xl">{getIconEmoji(itemIcon)}</span>
+                                <div className="flex-1">
+                                  <p className={`text-sm font-mono font-medium ${getRarityColor(item.rarity)}`}>
+                                    {item.name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1 capitalize">
+                                    {item.rarity}
+                                  </p>
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
                     )}
@@ -528,16 +535,22 @@ function App() {
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-3">Equipment Slots</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {profileData.equipment.equipment.map((item, i) => (
-                            <div key={i} className="p-4 bg-muted/50 rounded-lg">
-                              <p className={`text-sm font-mono font-medium ${getRarityColor(item.rarity)}`}>
-                                {item.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1 capitalize">
-                                {item.rarity}
-                              </p>
-                            </div>
-                          ))}
+                          {profileData.equipment.equipment.map((item, i) => {
+                            const itemIcon = getEquipmentIcon(item.name)
+                            return (
+                              <div key={i} className="p-4 bg-muted/50 rounded-lg flex items-center gap-3">
+                                <span className="text-2xl">{getIconEmoji(itemIcon)}</span>
+                                <div className="flex-1">
+                                  <p className={`text-sm font-mono font-medium ${getRarityColor(item.rarity)}`}>
+                                    {item.name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1 capitalize">
+                                    {item.rarity}
+                                  </p>
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
                     )}
@@ -546,7 +559,7 @@ function App() {
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-3">Active Pet</h3>
                         <div className="p-4 bg-muted/50 rounded-lg flex items-center gap-4">
-                          <PawPrint size={40} weight="fill" className={getRarityColor(profileData.pet.rarity)} />
+                          <span className="text-5xl">{getIconEmoji(getPetIcon(profileData.pet.type))}</span>
                           <div className="flex-1">
                             <p className={`font-mono font-semibold text-lg ${getRarityColor(profileData.pet.rarity)}`}>
                               {profileData.pet.name}
@@ -608,10 +621,14 @@ function App() {
                             <div className="space-y-4 pr-4">
                               {profileData.garden.crops.map((crop, i) => {
                                 const progress = (crop.harvested / crop.milestone) * 100
+                                const cropIcon = getCropIcon(crop.name)
                                 return (
                                   <div key={i} className="p-4 bg-muted/50 rounded-lg">
                                     <div className="flex items-center justify-between mb-2">
-                                      <p className="font-mono font-medium text-foreground">{crop.name}</p>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-2xl">{getIconEmoji(cropIcon)}</span>
+                                        <p className="font-mono font-medium text-foreground">{crop.name}</p>
+                                      </div>
                                       <p className="text-sm text-muted-foreground font-mono">
                                         {formatNumber(crop.harvested)} / {formatNumber(crop.milestone)}
                                       </p>

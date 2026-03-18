@@ -15,50 +15,6 @@ export interface HypixelResponse {
   profiles: HypixelProfile[]
 }
 
-const HYPIXEL_API_KEY = import.meta.env.VITE_HYPIXEL_API_KEY || ''
-
-function generateMockUUID(seed: string): string {
-  let hash = 0
-  for (let i = 0; i < seed.length; i++) {
-    hash = ((hash << 5) - hash) + seed.charCodeAt(i)
-    hash = hash & hash
-  }
-  const hex = Math.abs(hash).toString(16).padStart(8, '0')
-  return `${hex.slice(0, 8)}${hex.slice(0, 4)}4${hex.slice(0, 3)}8${hex.slice(0, 3)}${hex.slice(0, 12)}`.slice(0, 32)
-}
-
-function generateMockProfileData(username: string, profileName: string): any {
-  const seed = username + profileName
-  let hash = 0
-  for (let i = 0; i < seed.length; i++) {
-    hash = ((hash << 5) - hash) + seed.charCodeAt(i)
-    hash = hash & hash
-  }
-  
-  const random = (min: number, max: number) => {
-    hash = ((hash * 1103515245) + 12345) & 0x7fffffff
-    return Math.floor((hash % (max - min + 1)) + min)
-  }
-
-  const gardenLevel = random(1, 15)
-  const uniqueVisitors = random(10, 150)
-  const crops = [
-    { name: 'WHEAT', harvested: random(1000000, 50000000), milestone: random(5000000, 10000000) },
-    { name: 'CARROT', harvested: random(500000, 30000000), milestone: random(5000000, 10000000) },
-    { name: 'POTATO', harvested: random(800000, 40000000), milestone: random(5000000, 10000000) },
-    { name: 'MELON', harvested: random(2000000, 60000000), milestone: random(5000000, 10000000) },
-    { name: 'PUMPKIN', harvested: random(1500000, 45000000), milestone: random(5000000, 10000000) },
-    { name: 'SUGAR_CANE', harvested: random(1200000, 35000000), milestone: random(5000000, 10000000) }
-  ]
-
-  return {
-    garden_experience: gardenLevel * 50000,
-    crops: Object.fromEntries(crops.map(c => [c.name, { harvested: c.harvested, milestone: c.milestone }])),
-    unique_visitors: Array.from({ length: uniqueVisitors }, (_, i) => `visitor_${i}`),
-    compost: { total: random(10000, 500000) }
-  }
-}
-
 export async function fetchMinecraftUUID(username: string): Promise<MojangProfile> {
   const cleanUsername = username.trim().replace(/[^a-zA-Z0-9_]/g, '')
   
@@ -70,87 +26,104 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
     throw new Error('Username must be between 3 and 16 characters')
   }
 
-  await new Promise(resolve => setTimeout(resolve, 500))
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000)
 
-  const mockUUID = generateMockUUID(cleanUsername)
-  
-  console.log('🔍 Mock player lookup for:', cleanUsername)
-  console.log('🆔 Generated UUID:', mockUUID)
+    const response = await fetch(`https://api.mojang.com/users/profiles/minecraft/${cleanUsername}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      signal: controller.signal
+    })
 
-  return {
-    id: mockUUID,
-    name: cleanUsername.charAt(0).toUpperCase() + cleanUsername.slice(1).toLowerCase()
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Player not found. Please check the username.')
+      }
+      if (response.status === 429) {
+        throw new Error('Too many requests. Please try again in a moment.')
+      }
+      throw new Error(`Failed to fetch player data (Status: ${response.status})`)
+    }
+
+    const data = await response.json()
+
+    if (!data.id || !data.name) {
+      throw new Error('Invalid response from Mojang API')
+    }
+
+    console.log('🔍 Found player:', data.name, 'UUID:', data.id)
+
+    return {
+      id: data.id,
+      name: data.name
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - please try again')
+      }
+      throw error
+    }
+    throw new Error('Network error while fetching player data')
   }
 }
 
 export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfile[]> {
-  await new Promise(resolve => setTimeout(resolve, 600))
-  
-  const cleanUUID = uuid.replace(/-/g, '')
-  console.log('🔍 Generating mock Skyblock profiles for UUID:', cleanUUID)
+  try {
+    const cleanUUID = uuid.replace(/-/g, '')
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 15000)
 
-  const profileNames = ['Coconut', 'Apple', 'Banana', 'Mango']
-  const numProfiles = Math.floor(Math.random() * 2) + 1
-  
-  const profiles: HypixelProfile[] = []
-  for (let i = 0; i < numProfiles; i++) {
-    const profileName = profileNames[i]
-    const profileId = generateMockUUID(cleanUUID + profileName)
-    const gardenData = generateMockProfileData(cleanUUID, profileName)
-    
-    profiles.push({
-      profile_id: profileId,
-      cute_name: profileName,
-      selected: i === 0,
-      members: {
-        [cleanUUID]: {
-          garden: gardenData,
-          player_stats: {
-            farming: {
-              total_farming_fortune: Math.floor(Math.random() * 500) + 200
-            }
-          },
-          inventory: {
-            inv_armor: {
-              data: [
-                { tag: { display: { Name: '§6Farm Boots' }, ExtraAttributes: { rarity: 'LEGENDARY', farming_for_dummies_count: 5 } } },
-                { tag: { display: { Name: '§6Farm Leggings' }, ExtraAttributes: { rarity: 'LEGENDARY', farming_for_dummies_count: 5 } } },
-                { tag: { display: { Name: '§6Farm Chestplate' }, ExtraAttributes: { rarity: 'LEGENDARY', farming_for_dummies_count: 5 } } },
-                { tag: { display: { Name: '§6Farm Helmet' }, ExtraAttributes: { rarity: 'LEGENDARY', farming_for_dummies_count: 5 } } }
-              ]
-            },
-            equipment_contents: {
-              data: [
-                { tag: { display: { Name: '§5Cropie' }, ExtraAttributes: { rarity: 'EPIC' } } },
-                { tag: { display: { Name: '§9Farming Tool' }, ExtraAttributes: { rarity: 'RARE' } } }
-              ]
-            },
-            bag_contents: {
-              talisman_bag: {
-                data: [
-                  { tag: { display: { Name: '§6Farming Talisman' }, ExtraAttributes: { rarity: 'LEGENDARY' } } },
-                  { tag: { display: { Name: '§5Speed Talisman' }, ExtraAttributes: { rarity: 'EPIC' } } }
-                ]
-              }
-            }
-          },
-          pets_data: {
-            pets: [
-              {
-                type: 'ELEPHANT',
-                active: true,
-                tier: 'LEGENDARY',
-                exp: 250000
-              }
-            ]
-          }
-        }
-      }
+    const response = await fetch(`https://api.hypixel.net/v2/skyblock/profiles?uuid=${cleanUUID}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      signal: controller.signal
     })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('API rate limit reached. Please try again in a moment.')
+      }
+      if (response.status === 404) {
+        throw new Error('Player has no Skyblock profiles.')
+      }
+      throw new Error(`Failed to fetch Skyblock profiles (Status: ${response.status})`)
+    }
+
+    const data: HypixelResponse = await response.json()
+
+    if (!data.success) {
+      throw new Error('Failed to fetch Skyblock profiles - API returned unsuccessful response')
+    }
+
+    if (!data.profiles || data.profiles.length === 0) {
+      throw new Error('This player has no Skyblock profiles.')
+    }
+
+    console.log('✅ Found', data.profiles.length, 'Skyblock profile(s)')
+
+    return data.profiles.map(profile => ({
+      ...profile,
+      selected: profile.selected || false
+    }))
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - the Hypixel API took too long to respond')
+      }
+      throw error
+    }
+    throw new Error('Network error while fetching Skyblock profiles')
   }
-  
-  console.log('✅ Generated', profiles.length, 'mock profile(s)')
-  return profiles
 }
 
 export async function fetchProfile(profileId: string): Promise<HypixelProfile> {

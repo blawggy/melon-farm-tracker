@@ -1,47 +1,69 @@
 # Planning Guide
 
-A Hypixel Skyblock farming analyzer that provides detailed stats tracking for farming fortune, equipment, pets, and garden progression with visual crop/pet icons.
+A Hypixel Skyblock farming analyzer that provides detailed stats tracking for farming fortune, equipment, pets, and garden progression using the official Hypixel API.
 
 **Experience Qualities**: 
-
-**Experience Qualities**: 
-1. **Data-driven** - Real-time fetching of player stats from Hypixel API provides accurate, up-to-date farming information
+1. **Data-driven** - Real-time fetching of player stats from official Hypixel and Mojang APIs provides accurate, up-to-date farming information
 2. **Comprehensive** - Displays all farming-related stats including fortune breakdown, equipment, pets, and garden progress with emoji icons
 3. **Game-authentic** - Visual design mirrors Minecraft's aesthetic with blocky elements and familiar Skyblock color schemes
 
-- **Progression**: Enter username → Click search → Fetch player UUID from Mojang API → Fetch Skyblock prof
+## Essential Features
+
+### Player Search
+- **Functionality**: Search for Minecraft players by username
+- **Purpose**: Find and analyze any player's Skyblock farming statistics
+- **Trigger**: Enter username and click search button
+- **Progression**: Enter username → Click search → Fetch player UUID from Mojang API → Fetch Skyblock profiles from Hypixel API → Display profile selection
+- **Success criteria**: Successfully fetches real player data, handles errors gracefully
 - **API Endpoints**:
+  - Mojang API: `https://api.mojang.com/users/profiles/minecraft/{username}`
+  - Hypixel API: `https://api.hypixel.net/v2/skyblock/profiles?uuid={uuid}`
 
-  - Verified with use
-
-- **Functionality
+### Fortune Breakdown
+- **Functionality**: Calculate and display total farming fortune from all sources
+- **Purpose**: Help players understand where their fortune comes from and what to optimize
 - **Trigger**: Automatically loads after profile selection
-- **Success criteria**: Accurate fortune calculations, handles m
+- **Progression**: Profile data → Parse armor items → Parse equipment → Parse accessories → Parse pet → Calculate total fortune → Display breakdown
+- **Success criteria**: Accurate fortune calculations from real Hypixel data
+
 ### Equipment Display
+- **Functionality**: Display active farming pet with level, rarity, and fortune contribution
 - **Purpose**: Visual representation of farming gear setup
-- **Progression**: Profile data → Extract armor pieces → Extract equipment slots → Extract held items → Display with item names, enchant
-- **API Endpoints**:
-- **Functionality**: Display active farming pet with level, rarity, and fortu
 - **Trigger**: Part of profile data display
-- **Success criter
+- **Progression**: Profile data → Extract armor pieces → Extract equipment slots → Extract held items → Display with item names, enchantments, and rarities
+- **Success criteria**: Correctly parses item data from Hypixel API
+
 ### Garden & Greenhouse Progress
-- **Purpose**: Shows overall farming progression in the garden update
+- **Functionality**: Show garden level, crop milestones, visitors, and compost
+- **Purpose**: Track overall farming progression in the garden
+- **Trigger**: Automatically loads after profile selection (if player has garden data)
+- **Progression**: Profile data → Parse garden experience → Calculate garden level → Extract crop data → Display progress bars
+- **Success criteria**: Accurate garden statistics from real API data
 
-
-- **Functionality**: Create, edit, and manage custom farming plot guides with full markdown support
-- **Trigger**: Click "Farming Guides" button from main page or navigation
-- **Trigger**: Automatically loads after profile selection
 ### Player Comparison
+- **Functionality**: Compare multiple players' farming stats side-by-side
 - **Purpose**: Benchmark performance against friends or top farmers
+- **Trigger**: Click "Add to Comparison" button on any loaded profile
+- **Progression**: Load profiles → Add to comparison → View comparison table → Sort by different metrics
+- **Success criteria**: Persistent comparison data, easy to add/remove players
 
-### Equipment Display
-- **Invalid Username**: Display clear error message when player not found or doesn't play Sky
-- **Purpose**: Visual representation of farming gear setup
-- **Trigger**: Part of profile data display
-- **Offline API**: Display cached data if available, otherwise show service unavailable message
+### Farming Guides
+- **Functionality**: Create, edit, and manage custom farming plot guides with full markdown support
+- **Purpose**: Help players document their farming setups and strategies
+- **Trigger**: Click "Farming Guides" button from main page or navigation
+- **Progression**: View guides → Create new guide → Edit content in markdown → Save → Preview rendered markdown
+- **Success criteria**: Guides persist between sessions, markdown renders correctly
+
+## Edge Case Handling
+- **Invalid Username**: Display clear error message when player not found via Mojang API
+- **No Skyblock Profiles**: Show helpful message when player has no Skyblock profiles
+- **Multiple Profiles**: Allow user to select which profile to analyze
+- **Missing Data**: Handle incomplete profile data (no garden, no pets, missing equipment) with fallback displays
+- **API Timeout**: Show loading state with timeout fallback after 10 seconds
+- **API Rate Limiting**: Show user-friendly message when Hypixel API rate limit is hit
+- **Empty Guides**: Show helpful empty state when no guides exist with prompt to create first guide
 - **Markdown Errors**: Render markdown safely, sanitize potentially dangerous HTML
-
-The design shoul
+- **Guide Deletion**: Require confirmation before deleting guides to prevent accidental loss
 ## Color Selection
 - **Primary Color**: Skyblock Gold (oklch(0.65 0.15 85)) - Represents wealth 
   - Deep Forest Green (oklch(0.45 0.12 150)

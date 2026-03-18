@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { MagnifyingGlass, User, Sparkle, Plant, PawPrint, Backpack, Warning, ArrowLeft, ChartBar } from '@phosphor-icons/react'
+import { MagnifyingGlass, User, Sparkle, Plant, PawPrint, Backpack, Warning, ArrowLeft, TrendUp, Plus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -23,6 +23,8 @@ import {
   parsePet,
   type HypixelProfile
 } from '@/lib/hypixel-api'
+import { ComparisonView } from '@/components/ComparisonView'
+import type { ProfileData } from '@/types'
 
 interface PlayerData {
   uuid: string
@@ -30,11 +32,11 @@ interface PlayerData {
   profiles: HypixelProfile[]
 }
 
-interface ProfileData {
-  fortune: ReturnType<typeof parseFarmingFortune>
-  garden: ReturnType<typeof parseGarden>
-  equipment: ReturnType<typeof parseEquipment>
-  pet: ReturnType<typeof parsePet>
+interface ComparisonPlayer {
+  username: string
+  uuid: string
+  profileName: string
+  data: ProfileData
 }
 
 function App() {
@@ -45,6 +47,8 @@ function App() {
   const [selectedProfile, setSelectedProfile] = useState<HypixelProfile | null>(null)
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
   const [recentSearches, setRecentSearches] = useKV<string[]>('recent-searches', [])
+  const [comparisonPlayers, setComparisonPlayers] = useKV<ComparisonPlayer[]>('comparison-players', [])
+  const [showComparison, setShowComparison] = useState(false)
 
   const searchPlayer = async () => {
     if (!searchQuery.trim()) {
@@ -146,19 +150,86 @@ function App() {
     }
   }
 
+  const addToComparison = () => {
+    if (!playerData || !selectedProfile || !profileData) {
+      toast.error('No profile loaded to add')
+      return
+    }
+
+    const existingPlayer = (comparisonPlayers || []).find(p => p.uuid === playerData.uuid)
+    if (existingPlayer) {
+      toast.error('Player already in comparison')
+      return
+    }
+
+    const newPlayer: ComparisonPlayer = {
+      username: playerData.username,
+      uuid: playerData.uuid,
+      profileName: selectedProfile.cute_name,
+      data: profileData
+    }
+
+    setComparisonPlayers((current) => [...(current || []), newPlayer])
+    toast.success(`Added ${playerData.username} to comparison!`)
+  }
+
+  const removeFromComparison = (uuid: string) => {
+    setComparisonPlayers((current) => (current || []).filter(p => p.uuid !== uuid))
+    toast.success('Removed from comparison')
+  }
+
+  const clearComparison = () => {
+    setComparisonPlayers([])
+    setShowComparison(false)
+    toast.success('Comparison cleared')
+  }
+
+  if (showComparison && comparisonPlayers && comparisonPlayers.length > 0) {
+    return (
+      <ComparisonView
+        players={comparisonPlayers}
+        onRemovePlayer={removeFromComparison}
+        onClose={() => setShowComparison(false)}
+      />
+    )
+  }
+
   if (profileData && selectedProfile) {
     return (
       <div className="min-h-screen bg-background">
         <Toaster />
         <div className="container mx-auto px-4 py-8 max-w-7xl">
-          <Button 
-            variant="ghost" 
-            onClick={goBack}
-            className="mb-6 gap-2"
-          >
-            <ArrowLeft size={20} />
-            Back to Profiles
-          </Button>
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <Button 
+              variant="ghost" 
+              onClick={goBack}
+              className="gap-2"
+            >
+              <ArrowLeft size={20} />
+              Back to Profiles
+            </Button>
+
+            <div className="flex gap-2">
+              {comparisonPlayers && comparisonPlayers.length > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowComparison(true)}
+                  className="gap-2"
+                >
+                  <TrendUp size={20} weight="fill" />
+                  View Comparison ({comparisonPlayers.length})
+                </Button>
+              )}
+              <Button
+                onClick={addToComparison}
+                className="gap-2"
+                disabled={(comparisonPlayers || []).some(p => p.uuid === playerData?.uuid)}
+              >
+                <Plus size={20} weight="bold" />
+                Add to Comparison
+              </Button>
+            </div>
+          </div>
 
           <header className="mb-8">
             <div className="flex items-center gap-3 mb-2">
@@ -481,6 +552,26 @@ function App() {
           <p className="text-muted-foreground font-body text-lg">
             Analyze farming fortune, equipment, pets, and garden progress
           </p>
+          {comparisonPlayers && comparisonPlayers.length > 0 && (
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowComparison(true)}
+                className="gap-2"
+              >
+                <TrendUp size={20} weight="fill" />
+                View Comparison ({comparisonPlayers.length})
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearComparison}
+                className="text-muted-foreground"
+              >
+                Clear
+              </Button>
+            </div>
+          )}
         </motion.header>
 
         <motion.div

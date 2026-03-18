@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/s
-import { fetchMinecraftUUID, fetchSkyblockP
-interface TestResult {
-  status: 'pending' | 'success' | 'error'
-  timestamp: number
+import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { ArrowLeft, CheckCircle, XCircle, Clock, Flask } from '@phosphor-icons/react'
+import { fetchMinecraftUUID, fetchSkyblockProfiles } from '@/lib/hypixel-api'
 
 interface TestResult {
   username: string
@@ -15,22 +15,28 @@ interface TestResult {
   profileCount?: number
 }
 
-    for (const username of TE
-        username,
- 
+interface TestingPanelProps {
+  onClose: () => void
+}
 
-      try {
+const TEST_USERNAMES = [
+  'Technoblade',
+  'NotchIsReal',
+  'Dream',
+  'InvalidUser123456789',
+  'GeorgeNotFound'
+]
 
-          const profiles = await fetchSkyblockProfiles(mojangD
-          setTestResults(prev => prev.map(result => 
-              ? {
+export function TestingPanel({ onClose }: TestingPanelProps) {
+  const [testResults, setTestResults] = useState<TestResult[]>([])
+  const [isRunning, setIsRunning] = useState(false)
 
-                  uuid: mojangData.id,
-                }
+  const successCount = testResults.filter(r => r.status === 'success').length
+  const errorCount = testResults.filter(r => r.status === 'error').length
 
-          setTestResults(prev =>
-              ? {
-                  stat
+  const runTests = async () => {
+    setIsRunning(true)
+    setTestResults([])
 
     for (const username of TEST_USERNAMES) {
       setTestResults(prev => [...prev, {
@@ -46,85 +52,87 @@ interface TestResult {
         try {
           const profiles = await fetchSkyblockProfiles(mojangData.id)
           
+          setTestResults(prev => prev.map(result => 
+            result.username === username
+              ? {
+                  ...result,
+                  status: 'success',
+                  message: `Successfully fetched ${profiles.length} profile(s)`,
+                  uuid: mojangData.id,
+                  profileCount: profiles.length
+                }
+              : result
+          ))
+        } catch (profileError) {
+          setTestResults(prev => prev.map(result =>
+            result.username === username
+              ? {
+                  ...result,
+                  status: 'error',
+                  message: `Mojang API success, but Hypixel API failed: ${profileError instanceof Error ? profileError.message : 'Unknown error'}`,
+                  uuid: mojangData.id
+                }
+              : result
+          ))
+        }
+      } catch (mojangError) {
+        setTestResults(prev => prev.map(result =>
+          result.username === username
+            ? {
+                ...result,
+                status: 'error',
+                message: `Mojang API failed: ${mojangError instanceof Error ? mojangError.message : 'Unknown error'}`
+              }
+            : result
+        ))
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+
+    setIsRunning(false)
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 max-w-5xl">
+        <header className="mb-8">
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+            <Button 
+              variant="ghost" 
               onClick={onClose}
+              className="gap-2"
             >
-              Bac
-          </div>
-          <h1 className="text-3xl md
-          </h1>
-            Test the Hypixel Skyblock 
-
-            <Butt
-              disabled
-            
-                <>
-                  Running Tests...
-              ) : (
-                 
-                </>
+              <ArrowLeft size={20} />
+              Back to Search
             </Button>
-            {testResults.length > 0 && (
-                <Badge variant="secon
-                 
-                <Badge
-            
-         
           </div>
+          <div className="flex items-center gap-3 mb-2">
+            <Flask size={40} weight="fill" className="text-accent" />
+            <h1 className="text-3xl md:text-4xl text-primary tracking-tight">
+              API Testing Suite
+            </h1>
+          </div>
+          <p className="text-muted-foreground font-body mb-4">
+            Test the Hypixel Skyblock API integration with sample usernames
+          </p>
 
-          <h3 className="text-lg font-semibold mb-4 text-foreground f
-          </h3>
-            <div className
-                <div className="
-                    Click "Run Test Suite" to start testing
-               
-                test
-          
-       
-
-                        ? 'var(--color-destructive)' 
-     
-
-                       
-   
-
-          
-                        )}
-                          {result.username}
-                      </div>
-                        <Badge variant="outline" className="font-m
-                    
-                    </div>
-                      <p classN
-                      </p>
-             
-                        ? 'text-destr
-                  
-                    <
-                
-
-        </Card>
-        <Card className="p-6 
-            Abo
-          <ul className="text-xs text-muted-foreground fo
-            <li>• Tests the complete API flow: Mojang UUID lookup → Hypixel
-          </ul
-
-  )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+          <div className="flex items-center gap-3 flex-wrap">
+            <Button
+              onClick={runTests}
+              disabled={isRunning}
+              className="gap-2"
+            >
+              {isRunning ? (
+                <>
+                  <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
+                  Running Tests...
+                </>
+              ) : (
+                <>
+                  <Flask size={20} weight="fill" />
+                  Run Test Suite
+                </>
               )}
             </Button>
 
@@ -219,6 +227,6 @@ interface TestResult {
           </ul>
         </Card>
       </div>
-
+    </div>
   )
-
+}

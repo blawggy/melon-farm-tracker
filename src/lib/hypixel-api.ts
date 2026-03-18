@@ -17,6 +17,11 @@ export interface HypixelResponse {
 
 const HYPIXEL_API_KEY = '14a7e13c-88e4-4e69-bcbb-1699bd3862f7'
 
+async function fetchWithCORS(url: string): Promise<Response> {
+  const corsProxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+  return fetch(corsProxy)
+}
+
 export async function fetchMinecraftUUID(username: string): Promise<MojangProfile> {
   const cleanUsername = username.trim().replace(/[^a-zA-Z0-9_]/g, '')
   
@@ -28,35 +33,60 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
     throw new Error('Username must be between 3 and 16 characters')
   }
 
-  try {
-    console.log(`🔍 Fetching UUID for ${cleanUsername}...`)
-    const response = await fetch(`https://api.mojang.com/users/profiles/minecraft/${cleanUsername}`)
+  const apis = [
+    `https://api.mojang.com/users/profiles/minecraft/${cleanUsername}`,
+    `https://api.ashcon.app/mojang/v2/user/${cleanUsername}`,
+    `https://playerdb.co/api/player/minecraft/${cleanUsername}`
+  ]
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('Player not found. Please check the username.')
+  for (let i = 0; i < apis.length; i++) {
+    try {
+      console.log(`🔍 Fetching UUID for ${cleanUsername} from API ${i + 1}/${apis.length}...`)
+      
+      const response = await fetchWithCORS(apis[i])
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Player not found. Please check the username.')
+        }
+        console.log(`⚠️ API ${i + 1} returned status ${response.status}, trying next...`)
+        continue
       }
-      throw new Error(`Failed to fetch player (Status: ${response.status})`)
-    }
 
-    const data = await response.json()
-    
-    if (data.id && data.name) {
-      console.log(`✅ Found player: ${data.name} (${data.id})`)
-      return {
-        id: data.id,
-        name: data.name
+      const data = await response.json()
+      
+      let id: string | undefined
+      let name: string | undefined
+
+      if (i === 0 && data.id && data.name) {
+        id = data.id
+        name = data.name
+      } else if (i === 1 && data.uuid && data.username) {
+        id = data.uuid.replace(/-/g, '')
+        name = data.username
+      } else if (i === 2 && data.data?.player?.id && data.data?.player?.username) {
+        id = data.data.player.id.replace(/-/g, '')
+        name = data.data.player.username
+      }
+
+      if (id && name) {
+        console.log(`✅ Found player: ${name} (${id})`)
+        return { id, name }
+      }
+
+      console.log(`⚠️ API ${i + 1} returned invalid data format, trying next...`)
+    } catch (error) {
+      console.error(`❌ API ${i + 1} error:`, error)
+      if (i === apis.length - 1) {
+        if (error instanceof Error && error.message.includes('Player not found')) {
+          throw error
+        }
+        throw new Error('All APIs failed. Please try again later.')
       }
     }
-
-    throw new Error('Invalid response from Mojang API')
-  } catch (error) {
-    console.error('Error fetching player:', error)
-    if (error instanceof Error) {
-      throw error
-    }
-    throw new Error('Failed to fetch player. Please try again.')
   }
+
+  throw new Error('Failed to fetch player. Please try again.')
 }
 
 export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfile[]> {
@@ -66,7 +96,7 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
     console.log(`🔍 Fetching Skyblock profiles for UUID ${cleanUUID}...`)
     
     const url = `https://api.hypixel.net/v2/skyblock/profiles?uuid=${cleanUUID}&key=${HYPIXEL_API_KEY}`
-    const response = await fetch(url)
+    const response = await fetchWithCORS(url)
 
     if (!response.ok) {
       throw new Error(`Failed to fetch profiles (Status: ${response.status})`)

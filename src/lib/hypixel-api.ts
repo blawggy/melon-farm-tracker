@@ -29,262 +29,84 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
     throw new Error('Username must be between 3 and 16 characters')
   }
 
-  const apis = [
-    {
-      name: 'Elite API',
-      url: `${ELITE_API_BASE}/player/${cleanUsername}`,
-      parse: (data: any) => {
-        if (data.uuid && data.name) {
-          return {
-            id: data.uuid.replace(/-/g, ''),
-            name: data.name
-          }
-        }
-        throw new Error('Invalid response from API')
-      }
-    },
-    {
-      name: 'Mojang Official',
-      url: `https://api.mojang.com/users/profiles/minecraft/${cleanUsername}`,
-      parse: (data: any) => ({
-        id: data.id,
-        name: data.name
-      })
-    },
-    {
-      name: 'Ashcon',
-      url: `https://api.ashcon.app/mojang/v2/user/${cleanUsername}`,
-      parse: (data: any) => ({
+  try {
+    console.log(`🔍 Fetching UUID for ${cleanUsername} via Elite API...`)
+    const response = await fetch(`${ELITE_API_BASE}/player/${cleanUsername}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      mode: 'cors'
+    })
+
+    if (!response.ok) {
+      throw new Error('Player not found')
+    }
+
+    const data = await response.json()
+    
+    if (data.uuid && data.name) {
+      console.log(`✅ Found player: ${data.name} (${data.uuid})`)
+      return {
         id: data.uuid.replace(/-/g, ''),
-        name: data.username
-      })
-    },
-    {
-      name: 'PlayerDB',
-      url: `https://playerdb.co/api/player/minecraft/${cleanUsername}`,
-      parse: (data: any) => ({
-        id: data.data.player.id,
-        name: data.data.player.username
-      })
+        name: data.name
+      }
     }
-  ]
 
-  let lastError: Error | null = null
-
-  for (const api of apis) {
-    try {
-      console.log(`🔍 Trying ${api.name} API...`)
-      
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 8000)
-
-      const response = await fetch(api.url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        mode: 'cors',
-        signal: controller.signal
-      })
-
-      clearTimeout(timeoutId)
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new Error('Player not found. Please check the username.')
-        }
-        if (response.status === 429) {
-          console.log(`⚠️ ${api.name} rate limited, trying next API...`)
-          continue
-        }
-        throw new Error(`API returned status ${response.status}`)
-      }
-
-      const data = await response.json()
-      const parsed = api.parse(data)
-
-      if (!parsed.id || !parsed.name) {
-        throw new Error('Invalid response from API')
-      }
-
-      console.log(`✅ Found player via ${api.name}:`, parsed.name, 'UUID:', parsed.id)
-
-      return parsed
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          console.log(`⏱️ ${api.name} timeout, trying next API...`)
-          lastError = new Error('Request timeout')
-          continue
-        }
-        if (error.message.includes('Failed to fetch')) {
-          console.log(`🚫 ${api.name} CORS or network error, trying next API...`)
-          lastError = new Error('Network or CORS error - trying alternative APIs')
-          continue
-        }
-        if (error.message.includes('Player not found')) {
-          throw error
-        }
-        console.log(`❌ ${api.name} failed:`, error.message)
-        lastError = error
-        continue
-      }
-      lastError = new Error('Unknown error')
-    }
+    throw new Error('Invalid response from API')
+  } catch (error) {
+    console.error('Error fetching player:', error)
+    throw new Error('Failed to fetch player. Please check the username and try again.')
   }
-
-  throw lastError || new Error('All APIs failed to fetch player data. Please try again later.')
 }
 
 export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfile[]> {
   const cleanUUID = uuid.replace(/-/g, '')
   
-  const apis = [
-    {
-      name: 'Hypixel Official',
-      url: `https://api.hypixel.net/v2/skyblock/profiles?uuid=${cleanUUID}`,
-      headers: {
-        'API-Key': HYPIXEL_API_KEY,
-        'Accept': 'application/json'
-      } as HeadersInit,
-      parse: (data: any) => {
-        console.log('📦 Hypixel Official API response:', data)
-        
-        if (!data.success) {
-          throw new Error('API request failed')
-        }
-        
-        if (!data.profiles || !Array.isArray(data.profiles) || data.profiles.length === 0) {
-          throw new Error('No profiles found')
-        }
-
-        return data.profiles.map((profile: any) => ({
-          profile_id: profile.profile_id,
-          cute_name: profile.cute_name || 'Unknown',
-          selected: profile.selected || false,
-          members: profile.members || {}
-        }))
-      }
-    },
-    {
-      name: 'Elite API',
-      url: `${ELITE_API_BASE}/player/${cleanUUID}`,
+  try {
+    console.log(`🔍 Fetching Skyblock profiles for UUID ${cleanUUID}...`)
+    
+    const response = await fetch(`${ELITE_API_BASE}/player/${cleanUUID}`, {
+      method: 'GET',
       headers: {
         'Accept': 'application/json'
-      } as HeadersInit,
-      parse: (data: any) => {
-        console.log('📦 Elite API response:', data)
-        
-        if (!data.profiles || typeof data.profiles !== 'object') {
-          throw new Error('No profiles found')
-        }
+      },
+      mode: 'cors'
+    })
 
-        const profiles = Object.entries(data.profiles).map(([profileId, profile]: [string, any]) => {
-          return {
-            profile_id: profileId,
-            cute_name: profile.name || profile.cute_name || profileId,
-            selected: profile.selected || false,
-            members: profile.members || {}
-          }
-        })
-
-        if (profiles.length === 0) {
-          throw new Error('No profiles found')
-        }
-
-        return profiles
-      }
-    },
-    {
-      name: 'Sky.shiiyu.moe',
-      url: `https://sky.shiiyu.moe/api/v2/profile/${cleanUUID}`,
-      headers: {
-        'Accept': 'application/json'
-      } as HeadersInit,
-      parse: (data: any) => {
-        if (!data.profiles || Object.keys(data.profiles).length === 0) {
-          throw new Error('No profiles found')
-        }
-        
-        return Object.entries(data.profiles).map(([profileId, profile]: [string, any]) => ({
-          profile_id: profileId,
-          cute_name: profile.cute_name || profileId,
-          selected: profile.current || false,
-          members: profile.members || {}
-        }))
-      }
+    if (!response.ok) {
+      throw new Error(`Failed to fetch profiles (Status: ${response.status})`)
     }
-  ]
 
-  let lastError: Error | null = null
-
-  for (const api of apis) {
-    try {
-      console.log(`🔍 Trying ${api.name} API...`)
-      
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 15000)
-
-      const response = await fetch(api.url, {
-        method: 'GET',
-        headers: api.headers,
-        mode: 'cors',
-        signal: controller.signal
-      })
-
-      clearTimeout(timeoutId)
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          console.log(`⚠️ ${api.name} rate limited, trying next API...`)
-          continue
-        }
-        if (response.status === 404) {
-          console.log(`⚠️ ${api.name} returned 404, trying next API...`)
-          continue
-        }
-        if (response.status === 403) {
-          console.log(`⚠️ ${api.name} returned 403 (forbidden), trying next API...`)
-          continue
-        }
-        throw new Error(`API returned status ${response.status}`)
-      }
-
-      const data = await response.json()
-      const profiles = api.parse(data)
-
-      if (!profiles || profiles.length === 0) {
-        throw new Error('No Skyblock profiles found')
-      }
-
-      console.log(`✅ Found ${profiles.length} Skyblock profile(s) via ${api.name}`)
-
-      return profiles
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          console.log(`⏱️ ${api.name} timeout, trying next API...`)
-          lastError = new Error('Request timeout')
-          continue
-        }
-        if (error.message.includes('Failed to fetch')) {
-          console.log(`🚫 ${api.name} CORS or network error, trying next API...`)
-          lastError = new Error('Network or CORS error - trying alternative APIs')
-          continue
-        }
-        if (error.message.includes('No Skyblock profiles') || error.message.includes('no Skyblock profiles')) {
-          console.log(`❌ Player has no Skyblock profiles`)
-          throw new Error('Player has no Skyblock profiles. Make sure they have played Hypixel Skyblock and have API access enabled.')
-        }
-        console.log(`❌ ${api.name} failed:`, error.message)
-        lastError = error
-        continue
-      }
-      lastError = new Error('Unknown error')
+    const data = await response.json()
+    console.log('📦 Elite API Response:', data)
+    
+    if (!data.profiles || typeof data.profiles !== 'object') {
+      throw new Error('No Skyblock profiles found. Make sure the player has played Hypixel Skyblock and has API access enabled.')
     }
+
+    const profiles = Object.entries(data.profiles).map(([profileId, profileData]: [string, any]) => {
+      return {
+        profile_id: profileId,
+        cute_name: profileData.name || profileData.cute_name || profileId.substring(0, 8),
+        selected: profileData.selected || false,
+        members: profileData.members || {}
+      }
+    })
+
+    if (profiles.length === 0) {
+      throw new Error('No Skyblock profiles found')
+    }
+
+    console.log(`✅ Found ${profiles.length} profile(s)`)
+    return profiles
+  } catch (error) {
+    console.error('Error fetching Skyblock profiles:', error)
+    if (error instanceof Error) {
+      throw error
+    }
+    throw new Error('Failed to fetch Skyblock profiles. Please try again later.')
   }
-
-  throw lastError || new Error('All APIs failed to fetch Skyblock profiles. The player may not have any Skyblock profiles or all services are currently unavailable.')
 }
 
 export function parseFarmingFortune(memberData: any): {
@@ -311,207 +133,243 @@ export function parseFarmingFortune(memberData: any): {
     return { total, sources }
   }
 
-  const parseNBTData = (nbtData: string | any): any[] => {
-    if (!nbtData) return []
+  try {
+    const jacobsData = memberData.jacobs_contest || {}
+    const perks = jacobsData.perks || {}
     
-    try {
-      if (typeof nbtData === 'string') {
-        const parsed = JSON.parse(nbtData)
-        if (Array.isArray(parsed)) return parsed
-        if (parsed && typeof parsed === 'object' && 'i' in parsed && Array.isArray(parsed.i)) {
-          return parsed.i
-        }
-      }
-      if (Array.isArray(nbtData)) return nbtData
-      if (nbtData && typeof nbtData === 'object') {
-        if ('i' in nbtData && Array.isArray(nbtData.i)) return nbtData.i
-        return Object.values(nbtData)
-      }
-    } catch (e) {
-      console.error('Error parsing NBT data:', e)
+    if (perks.farming_level_cap) {
+      total += perks.farming_level_cap * 4
     }
-    return []
-  }
 
-  const inventory = memberData.inventory || memberData.inv_contents
+    const farmingSkill = memberData.player_data?.experience?.SKILL_FARMING || 
+                        memberData.experience_skill_farming || 0
+    const farmingLevel = calculateSkillLevel(farmingSkill)
+    total += farmingLevel * 4
 
-  if (inventory?.inv_armor?.data) {
-    const armorItems = parseNBTData(inventory.inv_armor.data)
-    if (Array.isArray(armorItems)) {
-      armorItems.forEach((item: any) => {
-        if (item?.tag?.display?.Name) {
-          const fortune = extractFortuneFromItem(item)
-          if (fortune > 0) {
-            sources.armor.push({
-              name: cleanItemName(item.tag.display.Name),
-              fortune
-            })
-          }
-        }
-      })
+    const anita = jacobsData.anita_bonus || 0
+    total += anita * 4
+
+    const plotsUnlocked = memberData.garden_player_data?.garden?.plots_unlocked || 
+                          memberData.garden?.plots_unlocked || 0
+    total += Math.min(plotsUnlocked * 3, 36)
+
+    const community = memberData.garden_player_data?.garden?.community_shop || {}
+    if (community.farming_fortune) {
+      total += community.farming_fortune * 4
     }
-  }
 
-  if (inventory?.equipment_contents?.data) {
-    const equipmentItems = parseNBTData(inventory.equipment_contents.data)
-    if (Array.isArray(equipmentItems)) {
-      equipmentItems.forEach((item: any) => {
-        if (item?.tag?.display?.Name) {
-          const fortune = extractFortuneFromItem(item)
-          if (fortune > 0) {
-            sources.equipment.push({
-              name: cleanItemName(item.tag.display.Name),
-              fortune
-            })
-          }
-        }
-      })
-    }
-  }
-
-  if (inventory?.bag_contents?.talisman_bag?.data) {
-    const accessoryItems = parseNBTData(inventory.bag_contents.talisman_bag.data)
-    if (Array.isArray(accessoryItems)) {
+    const accessories = memberData.accessory_bag_storage?.bag_contents_0?.data || 
+                       memberData.inventory?.bag_contents?.talisman_bag?.data
+    if (accessories) {
+      const accessoryItems = parseInventoryData(accessories)
       accessoryItems.forEach((item: any) => {
-        if (item?.tag?.display?.Name) {
-          const fortune = extractFortuneFromItem(item)
-          if (fortune > 0) {
-            sources.accessories.push({
-              name: cleanItemName(item.tag.display.Name),
-              fortune
-            })
-          }
+        const fortune = extractFarmingFortune(item)
+        if (fortune > 0) {
+          sources.accessories.push({
+            name: getItemName(item),
+            fortune
+          })
+          total += fortune
         }
       })
     }
-  }
 
-  const petData = memberData.pets_data?.pets || memberData.pets
-  if (petData && Array.isArray(petData) && petData.length > 0) {
-    const activePet = petData.find((p: any) => p && p.active === true)
-    if (activePet && activePet.type) {
-      const petFortune = calculatePetFortune(activePet)
-      if (petFortune > 0) {
-        sources.pet = {
-          name: formatPetName(activePet.type),
-          fortune: petFortune
+    const armorData = memberData.inventory?.inv_armor?.data
+    if (armorData) {
+      const armorItems = parseInventoryData(armorData)
+      armorItems.forEach((item: any) => {
+        const fortune = extractFarmingFortune(item)
+        if (fortune > 0) {
+          sources.armor.push({
+            name: getItemName(item),
+            fortune
+          })
+          total += fortune
+        }
+      })
+    }
+
+    const equipmentData = memberData.inventory?.equipment_contents?.data
+    if (equipmentData) {
+      const equipmentItems = parseInventoryData(equipmentData)
+      equipmentItems.forEach((item: any) => {
+        const fortune = extractFarmingFortune(item)
+        if (fortune > 0) {
+          sources.equipment.push({
+            name: getItemName(item),
+            fortune
+          })
+          total += fortune
+        }
+      })
+    }
+
+    const pets = memberData.pets_data?.pets || memberData.pets || []
+    if (Array.isArray(pets)) {
+      const activePet = pets.find((p: any) => p?.active === true)
+      if (activePet) {
+        const petFortune = calculatePetFortune(activePet)
+        if (petFortune > 0) {
+          sources.pet = {
+            name: formatPetName(activePet.type),
+            fortune: petFortune
+          }
+          total += petFortune
         }
       }
     }
+  } catch (error) {
+    console.error('Error parsing farming fortune:', error)
   }
 
-  total = [...sources.armor, ...sources.equipment, ...sources.accessories]
-    .reduce((sum, item) => sum + item.fortune, 0)
-  
-  if (sources.pet) {
-    total += sources.pet.fortune
-  }
-
+  console.log('✅ Total Farming Fortune:', total)
   return { total, sources }
 }
 
-function extractFortuneFromItem(item: any): number {
-  let fortune = 0
-
-  if (!item?.tag?.ExtraAttributes) {
-    return fortune
+function parseInventoryData(data: any): any[] {
+  if (!data) return []
+  
+  try {
+    if (typeof data === 'string') {
+      const parsed = JSON.parse(data)
+      if (Array.isArray(parsed)) return parsed
+      if (parsed?.i && Array.isArray(parsed.i)) return parsed.i
+    }
+    if (Array.isArray(data)) return data
+    if (data?.i && Array.isArray(data.i)) return data.i
+  } catch (error) {
+    console.error('Error parsing inventory data:', error)
   }
+  return []
+}
 
+function extractFarmingFortune(item: any): number {
+  if (!item?.tag?.ExtraAttributes) return 0
+  
+  let fortune = 0
   const attrs = item.tag.ExtraAttributes
 
   if (attrs.farming_for_dummies_count) {
     fortune += attrs.farming_for_dummies_count
   }
 
-  if (attrs.gems && typeof attrs.gems === 'object') {
-    const gemValues = Object.values(attrs.gems)
-    gemValues.forEach((gem: any) => {
-      if (gem && typeof gem === 'object') {
-        if (gem.quality && typeof gem.quality === 'string' && gem.quality.includes('FARMING')) {
-          fortune += 10
-        }
+  const enchants = attrs.enchantments || {}
+  if (enchants.harvesting) {
+    fortune += enchants.harvesting * 12.5
+  }
+  if (enchants.cultivating) {
+    fortune += enchants.cultivating * 2
+  }
+  if (enchants.dedication) {
+    fortune += enchants.dedication * 4
+  }
+  if (enchants.turbo_coco) {
+    fortune += enchants.turbo_coco * 5
+  }
+  if (enchants.turbo_cane) {
+    fortune += enchants.turbo_cane * 5
+  }
+  if (enchants.turbo_carrot) {
+    fortune += enchants.turbo_carrot * 5
+  }
+  if (enchants.turbo_potato) {
+    fortune += enchants.turbo_potato * 5
+  }
+  if (enchants.turbo_pumpkin) {
+    fortune += enchants.turbo_pumpkin * 5
+  }
+  if (enchants.turbo_melon) {
+    fortune += enchants.turbo_melon * 5
+  }
+  if (enchants.turbo_wheat) {
+    fortune += enchants.turbo_wheat * 5
+  }
+  if (enchants.turbo_warts) {
+    fortune += enchants.turbo_warts * 5
+  }
+
+  const reforges: Record<string, number> = {
+    'blessed': 2,
+    'bountiful': 4,
+    'prosperous': 6,
+    'blooming': 8,
+    'rooted': 8,
+    'fertile': 10
+  }
+  const reforge = attrs.modifier?.toLowerCase()
+  if (reforge && reforges[reforge]) {
+    fortune += reforges[reforge]
+  }
+
+  if (attrs.gems) {
+    Object.values(attrs.gems).forEach((gem: any) => {
+      if (gem?.quality?.toLowerCase().includes('farming') || 
+          gem?.quality?.toLowerCase().includes('amber')) {
+        const quality = gem.quality?.toLowerCase()
+        if (quality?.includes('perfect')) fortune += 10
+        else if (quality?.includes('flawless')) fortune += 8
+        else if (quality?.includes('fine')) fortune += 6
+        else fortune += 4
       }
     })
-  }
-
-  if (attrs.enchantments && typeof attrs.enchantments === 'object') {
-    if (typeof attrs.enchantments.harvesting === 'number') {
-      fortune += attrs.enchantments.harvesting * 12.5
-    }
-    if (typeof attrs.enchantments.cultivating === 'number') {
-      fortune += attrs.enchantments.cultivating * 2
-    }
-    if (typeof attrs.enchantments.dedication === 'number') {
-      fortune += attrs.enchantments.dedication * 4
-    }
-  }
-
-  if (attrs.modifier && typeof attrs.modifier === 'string') {
-    const reforges: Record<string, number> = {
-      'blessed': 5,
-      'bountiful': 5,
-      'robust': 10
-    }
-    const reforgeName = attrs.modifier.toLowerCase()
-    if (reforges[reforgeName]) {
-      fortune += reforges[reforgeName]
-    }
   }
 
   return fortune
 }
 
 function calculatePetFortune(pet: any): number {
-  const farmingPets: Record<string, { formula: (level: number) => number }> = {
-    'MOOSHROOM_COW': { formula: (level) => Math.floor(level * 0.5) },
-    'BEE': { formula: (level) => Math.floor(level * 0.3) },
-    'RABBIT': { formula: (level) => Math.floor(level * 0.2) }
+  if (!pet?.type) return 0
+  
+  const farmingPets: Record<string, (level: number) => number> = {
+    'MOOSHROOM_COW': (level) => Math.floor(level * 1),
+    'ELEPHANT': (level) => Math.floor(level * 0.75),
+    'BEE': (level) => Math.floor(level * 0.5),
+    'SLUG': (level) => Math.floor(level * 0.5)
   }
   
-  const petConfig = farmingPets[pet.type]
-  if (!petConfig) {
-    return 0
-  }
-
+  const calculator = farmingPets[pet.type]
+  if (!calculator) return 0
+  
   const level = pet.exp ? calculatePetLevel(pet.exp, pet.tier || 'COMMON') : 1
-  return petConfig.formula(level)
+  return calculator(level)
 }
 
 function calculatePetLevel(exp: number, tier: string): number {
-  const maxLevels: Record<string, number> = {
-    COMMON: 100,
-    UNCOMMON: 100,
-    RARE: 100,
-    EPIC: 100,
-    LEGENDARY: 100,
-    MYTHIC: 200
-  }
+  const expPerLevel = 5000
+  return Math.min(Math.floor(exp / expPerLevel), 100)
+}
 
-  const expPerLevel = tier === 'MYTHIC' ? 25000 : 10000
-  const maxLevel = maxLevels[tier] || 100
-  return Math.min(Math.floor(exp / expPerLevel) + 1, maxLevel)
+function calculateSkillLevel(exp: number): number {
+  const levels = [
+    0, 50, 175, 375, 675, 1175, 1925, 2925, 4425, 6425, 9925, 14925, 22425, 32425, 47425, 67425, 97425, 
+    147425, 222425, 322425, 522425, 822425, 1222425, 1722425, 2322425, 3022425, 3822425, 4722425, 5722425, 
+    6822425, 8022425, 9322425, 10722425, 12222425, 13822425, 15522425, 17322425, 19222425, 21222425, 23322425, 
+    25522425, 27822425, 30222425, 32722425, 35322425, 38072425, 40972425, 44072425, 47472425, 51172425, 
+    55172425, 59472425, 64072425, 68972425, 74172425, 79672425, 85472425, 91572425, 97972425, 104672425
+  ]
+  
+  for (let i = levels.length - 1; i >= 0; i--) {
+    if (exp >= levels[i]) {
+      return i
+    }
+  }
+  
+  return 0
+}
+
+function getItemName(item: any): string {
+  if (!item?.tag?.display?.Name) return 'Unknown'
+  return cleanItemName(item.tag.display.Name)
 }
 
 function cleanItemName(name: string): string {
-  if (!name || typeof name !== 'string') {
-    return 'Unknown'
-  }
-  
-  return name
-    .replace(/§[0-9a-fk-or]/gi, '')
-    .replace(/[^\w\s]/g, '')
-    .trim()
+  if (!name) return 'Unknown'
+  return name.replace(/§[0-9a-fk-or]/gi, '').replace(/[^\w\s'-]/g, '').trim()
 }
 
 function formatPetName(type: string): string {
-  if (!type || typeof type !== 'string') {
-    return 'Unknown Pet'
-  }
-  
-  return type
-    .split('_')
-    .map(word => word.charAt(0) + word.slice(1).toLowerCase())
-    .join(' ')
+  if (!type) return 'Unknown Pet'
+  return type.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ')
 }
 
 export function parseGarden(memberData: any): {
@@ -520,111 +378,120 @@ export function parseGarden(memberData: any): {
   visitors: number
   compost: number
 } {
+  const defaultResult = {
+    level: 0,
+    crops: [],
+    visitors: 0,
+    compost: 0
+  }
+
   if (!memberData) {
-    console.log('⚠️ parseGarden: No member data provided')
-    return {
-      level: 0,
-      crops: [],
-      visitors: 0,
-      compost: 0
-    }
+    console.log('⚠️ No member data provided to parseGarden')
+    return defaultResult
   }
 
-  console.log('🔍 parseGarden: Checking for garden data...')
-  console.log('🔍 memberData keys:', Object.keys(memberData))
-  
-  const gardenData = memberData.garden_player_data || memberData.garden || memberData.player_data?.garden
+  try {
+    console.log('🔍 Parsing garden data...')
+    
+    const gardenData = memberData.garden_player_data?.garden || 
+                       memberData.garden || 
+                       memberData.player_data?.garden
 
-  if (!gardenData) {
-    console.log('⚠️ parseGarden: No garden data found')
-    return {
-      level: 0,
-      crops: [],
-      visitors: 0,
-      compost: 0
+    if (!gardenData) {
+      console.log('⚠️ No garden data found in member data')
+      return defaultResult
     }
-  }
-  
-  console.log('✅ parseGarden: Found garden data')
-  console.log('🔍 Garden data keys:', Object.keys(gardenData))
 
-  const experience = gardenData.garden_experience || gardenData.experience || 0
-  console.log('🔍 Garden experience:', experience)
-  
-  const cropMilestones = gardenData.resources_collected || gardenData.crops || {}
-  console.log('🔍 Crop milestones:', cropMilestones)
-  
-  const uniqueVisitors = gardenData.unique_visitors || gardenData.unique_visitors_2 || []
-  console.log('🔍 Unique visitors:', uniqueVisitors)
-  
-  const compostData = gardenData.compost || gardenData.compost_data || {}
-  console.log('🔍 Compost data:', compostData)
-  
-  const cropMilestoneValues = [
-    1000, 5000, 25000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000, 25000000, 50000000, 100000000
-  ]
-  
-  const level = calculateGardenLevel(experience)
-  
-  const crops = Object.entries(cropMilestones)
-    .filter(([crop]) => !crop.startsWith('MUSHROOM') && !crop.includes('LOG') && !crop.includes('WART'))
-    .map(([crop, harvested]: [string, any]) => {
-      const harvestedCount = typeof harvested === 'number' ? harvested : (harvested?.value || harvested?.amount || 0)
-      
-      let currentMilestone = cropMilestoneValues[0]
-      for (let i = 0; i < cropMilestoneValues.length; i++) {
-        if (harvestedCount >= cropMilestoneValues[i]) {
-          currentMilestone = cropMilestoneValues[i + 1] || cropMilestoneValues[i]
-        } else {
-          currentMilestone = cropMilestoneValues[i]
-          break
+    console.log('✅ Found garden data:', Object.keys(gardenData))
+
+    const experience = gardenData.garden_experience || gardenData.experience || 0
+    const level = calculateGardenLevel(experience)
+    console.log(`🌱 Garden Level: ${level} (${experience} XP)`)
+
+    const cropsData = gardenData.resources_collected || {}
+    console.log('🌾 Crops data:', cropsData)
+
+    const cropNames: Record<string, string> = {
+      'WHEAT': 'Wheat',
+      'CARROT_ITEM': 'Carrot',
+      'POTATO_ITEM': 'Potato',
+      'PUMPKIN': 'Pumpkin',
+      'MELON': 'Melon',
+      'MUSHROOM_COLLECTION': 'Mushroom',
+      'COCOA': 'Cocoa Beans',
+      'CACTUS': 'Cactus',
+      'SUGAR_CANE': 'Sugar Cane',
+      'NETHER_STALK': 'Nether Wart',
+      'INK_SACK:3': 'Cocoa Beans'
+    }
+
+    const cropMilestones = [
+      0, 1000, 5000, 25000, 100000, 250000, 500000, 1000000, 2500000, 5000000,
+      10000000, 25000000, 50000000, 100000000, 250000000, 500000000, 1000000000
+    ]
+
+    const crops = Object.entries(cropsData)
+      .filter(([cropKey]) => cropNames[cropKey])
+      .map(([cropKey, amount]: [string, any]) => {
+        const harvested = typeof amount === 'number' ? amount : 0
+        
+        let milestone = cropMilestones[0]
+        for (let i = cropMilestones.length - 1; i >= 0; i--) {
+          if (harvested >= cropMilestones[i]) {
+            milestone = cropMilestones[i + 1] || cropMilestones[i]
+            break
+          }
         }
-      }
-      
-      return {
-        name: crop.toLowerCase().replace(/_/g, ' '),
-        harvested: harvestedCount,
-        milestone: currentMilestone
-      }
-    })
-    .sort((a, b) => b.harvested - a.harvested)
-  
-  let visitorCount = 0
-  if (Array.isArray(uniqueVisitors)) {
-    visitorCount = uniqueVisitors.length
-  } else if (typeof uniqueVisitors === 'number') {
-    visitorCount = uniqueVisitors
-  } else if (uniqueVisitors && typeof uniqueVisitors === 'object') {
-    const visitorKeys = Object.keys(uniqueVisitors)
-    visitorCount = visitorKeys.length
-  }
-  
-  let compostTotal = 0
-  if (typeof compostData === 'number') {
-    compostTotal = compostData
-  } else if (compostData && typeof compostData === 'object') {
-    compostTotal = Object.values(compostData).reduce((sum: number, val: any) => sum + (typeof val === 'number' ? val : 0), 0)
-  }
-  
-  console.log('✅ parseGarden result:', {
-    level,
-    visitors: visitorCount,
-    cropsCount: crops.length,
-    compost: compostTotal
-  })
+        
+        return {
+          name: cropNames[cropKey],
+          harvested,
+          milestone
+        }
+      })
+      .sort((a, b) => b.harvested - a.harvested)
 
-  return {
-    level,
-    crops,
-    visitors: visitorCount,
-    compost: compostTotal
+    console.log(`✅ Parsed ${crops.length} crops`)
+
+    let visitors = 0
+    const visitorsData = gardenData.unique_visitors || gardenData.unique_visitors_2
+    if (Array.isArray(visitorsData)) {
+      visitors = visitorsData.length
+    } else if (typeof visitorsData === 'number') {
+      visitors = visitorsData
+    } else if (visitorsData && typeof visitorsData === 'object') {
+      visitors = Object.keys(visitorsData).length
+    }
+    console.log(`👥 Unique Visitors: ${visitors}`)
+
+    let compost = 0
+    const compostData = gardenData.compost_data || gardenData.compost
+    if (typeof compostData === 'number') {
+      compost = compostData
+    } else if (compostData && typeof compostData === 'object') {
+      const organicMatter = compostData.organic_matter || 0
+      const fuelCap = compostData.fuel_cap || 0
+      compost = organicMatter + fuelCap
+    }
+    console.log(`🗑️ Compost: ${compost}`)
+
+    return {
+      level,
+      crops,
+      visitors,
+      compost
+    }
+  } catch (error) {
+    console.error('Error parsing garden data:', error)
+    return defaultResult
   }
 }
 
 function calculateGardenLevel(experience: number): number {
   const levels = [
     0, 1000, 2500, 5000, 10000, 20000, 35000, 55000, 80000, 110000,
-    145000, 185000, 230000, 280000, 335000, 395000, 460000, 530000, 605000, 685000
+    145000, 185000, 230000, 280000, 335000, 395000, 460000, 530000, 605000, 685000,
+    770000, 860000, 955000, 1055000, 1160000, 1270000, 1385000, 1505000, 1630000, 1760000
   ]
   
   for (let i = levels.length - 1; i >= 0; i--) {
@@ -632,19 +499,8 @@ function calculateGardenLevel(experience: number): number {
       return i + 1
     }
   }
-
-  return 1
-}
-
-function formatCropName(crop: string): string {
-  if (!crop || typeof crop !== 'string') {
-    return 'Unknown'
-  }
   
-  return crop
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-    .join(' ')
+  return 0
 }
 
 export function parseEquipment(memberData: any): {
@@ -658,106 +514,46 @@ export function parseEquipment(memberData: any): {
     accessories: [] as Array<{ name: string; rarity: string }>
   }
 
-  if (!memberData) {
-    console.log('⚠️ parseEquipment: No member data provided')
-    return result
-  }
+  if (!memberData) return result
 
-  console.log('🔍 parseEquipment: Checking for inventory data...')
-  console.log('🔍 memberData keys:', Object.keys(memberData))
+  try {
+    const inventory = memberData.inventory
 
-  const parseNBTData = (nbtData: string | any): any[] => {
-    if (!nbtData) return []
-    
-    try {
-      if (typeof nbtData === 'string') {
-        const parsed = JSON.parse(nbtData)
-        if (Array.isArray(parsed)) return parsed
-        if (parsed && typeof parsed === 'object' && 'i' in parsed && Array.isArray(parsed.i)) {
-          return parsed.i
-        }
-      }
-      if (Array.isArray(nbtData)) return nbtData
-      if (nbtData && typeof nbtData === 'object') {
-        if ('i' in nbtData && Array.isArray(nbtData.i)) return nbtData.i
-        return Object.values(nbtData)
-      }
-    } catch (e) {
-      console.error('Error parsing NBT data:', e)
-    }
-    return []
-  }
-
-  const parseItems = (nbtData: any): Array<{ name: string; rarity: string }> => {
-    const items = parseNBTData(nbtData)
-    
-    if (!Array.isArray(items)) {
-      return []
-    }
-    
-    return items
-      .filter((item: any) => item && item.tag?.display?.Name)
-      .map((item: any) => {
-        const displayName = item.tag.display.Name
-        const rarity = item.tag?.ExtraAttributes?.rarity || 
-                      item.tag?.display?.Lore?.[item.tag.display.Lore.length - 1]?.match(/§[0-9a-f]§l([A-Z ]+)$/)?.[1] ||
-                      'COMMON'
-        
-        return {
-          name: cleanItemName(displayName),
-          rarity: rarity.toString().toUpperCase()
-        }
-      })
-  }
-
-  const inventory = memberData.inventory || memberData.inv_contents
-  
-  if (!inventory) {
-    console.log('⚠️ parseEquipment: No inventory data found')
-    return result
-  }
-
-  console.log('🔍 parseEquipment inventory keys:', Object.keys(inventory))
-  
-  if (inventory?.inv_armor?.data) {
-    console.log('✅ parseEquipment: Found armor data')
-    const armorItems = parseNBTData(inventory.inv_armor.data)
-    if (Array.isArray(armorItems)) {
+    if (inventory?.inv_armor?.data) {
+      const armorItems = parseInventoryData(inventory.inv_armor.data)
       result.armor = armorItems
-        .filter((item: any) => item && item.tag?.display?.Name)
-        .map((item: any) => {
-          const displayName = item.tag.display.Name
-          const rarity = item.tag?.ExtraAttributes?.rarity || 'COMMON'
-          
-          return {
-            name: cleanItemName(displayName),
-            rarity: rarity.toString().toUpperCase()
-          }
-        })
+        .filter((item: any) => item?.tag?.display?.Name)
+        .map((item: any) => ({
+          name: getItemName(item),
+          rarity: (item.tag?.ExtraAttributes?.rarity || 'common').toLowerCase()
+        }))
     }
-  } else {
-    console.log('⚠️ parseEquipment: No armor data found')
-  }
 
-  if (inventory?.equipment_contents?.data) {
-    console.log('✅ parseEquipment: Found equipment data')
-    result.equipment = parseItems(inventory.equipment_contents.data)
-  } else {
-    console.log('⚠️ parseEquipment: No equipment data found')
-  }
+    if (inventory?.equipment_contents?.data) {
+      const equipmentItems = parseInventoryData(inventory.equipment_contents.data)
+      result.equipment = equipmentItems
+        .filter((item: any) => item?.tag?.display?.Name)
+        .map((item: any) => ({
+          name: getItemName(item),
+          rarity: (item.tag?.ExtraAttributes?.rarity || 'common').toLowerCase()
+        }))
+    }
 
-  if (inventory?.bag_contents?.talisman_bag?.data) {
-    console.log('✅ parseEquipment: Found accessories data')
-    result.accessories = parseItems(inventory.bag_contents.talisman_bag.data)
-  } else {
-    console.log('⚠️ parseEquipment: No accessories data found')
+    const accessories = memberData.accessory_bag_storage?.bag_contents_0?.data || 
+                       inventory?.bag_contents?.talisman_bag?.data
+    if (accessories) {
+      const accessoryItems = parseInventoryData(accessories)
+      result.accessories = accessoryItems
+        .filter((item: any) => item?.tag?.display?.Name)
+        .slice(0, 10)
+        .map((item: any) => ({
+          name: getItemName(item),
+          rarity: (item.tag?.ExtraAttributes?.rarity || 'common').toLowerCase()
+        }))
+    }
+  } catch (error) {
+    console.error('Error parsing equipment:', error)
   }
-
-  console.log('✅ parseEquipment result:', {
-    armorCount: result.armor.length,
-    equipmentCount: result.equipment.length,
-    accessoriesCount: result.accessories.length
-  })
 
   return result
 }
@@ -768,44 +564,33 @@ export function parsePet(memberData: any): {
   rarity: string
   type: string
 } | null {
-  if (!memberData) {
-    console.log('⚠️ parsePet: No member data provided')
+  if (!memberData) return null
+
+  try {
+    const pets = memberData.pets_data?.pets || memberData.pets || []
+    
+    if (!Array.isArray(pets) || pets.length === 0) {
+      return null
+    }
+
+    const activePet = pets.find((p: any) => p?.active === true)
+    
+    if (!activePet?.type) {
+      return null
+    }
+
+    const tier = activePet.tier || 'COMMON'
+    const exp = activePet.exp || 0
+    const level = calculatePetLevel(exp, tier)
+
+    return {
+      name: formatPetName(activePet.type),
+      type: activePet.type,
+      level,
+      rarity: tier.toLowerCase()
+    }
+  } catch (error) {
+    console.error('Error parsing pet:', error)
     return null
-  }
-
-  console.log('🔍 parsePet: Checking for pet data...')
-  console.log('🔍 memberData keys:', Object.keys(memberData))
-
-  const pets = memberData.pets_data?.pets || memberData.pets
-  
-  if (!pets || !Array.isArray(pets) || pets.length === 0) {
-    console.log('⚠️ parsePet: No pets found')
-    return null
-  }
-
-  console.log('✅ parsePet: Found', pets.length, 'pets')
-
-  const activePet = pets.find((p: any) => p && p.active === true)
-
-  if (!activePet || !activePet.type) {
-    console.log('⚠️ parsePet: No active pet found')
-    return null
-  }
-
-  const tier = activePet.tier || 'COMMON'
-  const exp = activePet.exp || 0
-
-  console.log('✅ parsePet: Found active pet:', {
-    type: activePet.type,
-    tier,
-    exp,
-    level: calculatePetLevel(exp, tier)
-  })
-
-  return {
-    name: formatPetName(activePet.type),
-    type: activePet.type,
-    level: calculatePetLevel(exp, tier),
-    rarity: tier.toLowerCase()
   }
 }

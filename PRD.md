@@ -40,6 +40,13 @@ A Minecraft Hypixel Skyblock farming tracker that helps players monitor their me
 - **Progression**: View session list → Click delete icon on session → Confirm deletion → Session removed from history and stats recalculate
 - **Success criteria**: Sessions display newest first, delete removes from storage, empty state shows helpful message
 
+### Achievements & Milestones
+- **Functionality**: Track farming milestones and display achievement badges for reaching goals
+- **Purpose**: Gamify the farming experience and motivate players to reach higher efficiency targets
+- **Trigger**: Automatically checks achievement conditions when stats update
+- **Progression**: Farm melons → Reach milestone threshold → Badge unlocks → Display in achievements section → Progress bar shows next goal
+- **Success criteria**: Achievements persist across sessions, badges display earned state, progress indicators show clear path to next milestone
+
 ## Edge Case Handling
 - **Zero/Negative Values**: Prevent negative numbers in melon count and price fields; treat zero as valid but show warning
 - **Empty Sessions**: Display friendly empty state with guidance when no sessions exist
@@ -89,9 +96,11 @@ Animations should feel immediate and satisfying, reinforcing the player's action
   - Button (for CTAs, delete actions) - Primary variant for "New Session", ghost variant for delete
   - Input (for melon count, price entry) - With number type and step attributes
   - Dialog (for new session form) - Modal overlay to focus on data entry
-  - Badge (for displaying session status/tags) - Highlight special achievements
+  - Badge (for displaying achievement status) - Highlight earned vs locked milestones
   - Separator (between sections) - Visual organization
   - ScrollArea (for session history) - Smooth scrolling on long lists
+  - Progress (for milestone progress bars) - Visual indicator of progress to next achievement
+  - Tabs (for switching between history and achievements) - Organize content sections
 
 - **Customizations**: 
   - Custom stat cards with large emphasized numbers and subtle pixel-art style borders
@@ -110,6 +119,10 @@ Animations should feel immediate and satisfying, reinforcing the player's action
   - Clock for time tracking
   - Coins/CurrencyCircleDollar for profit display
   - Plant/Leaf for melon representation
+  - Trophy/Medal for achievements
+  - Target for goals and milestones
+  - Sparkle/Star for unlocked badges
+  - Lock for locked achievements
 
 - **Spacing**: 
   - Container padding: p-6 on desktop, p-4 on mobile

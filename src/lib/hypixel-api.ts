@@ -478,21 +478,24 @@ function formatPetName(type: string): string {
     .split('_')
     .map(word => word.charAt(0) + word.slice(1).toLowerCase())
     .join(' ')
+}
 
 export function parseGarden(memberData: any): {
   level: number
   crops: Array<{ name: string; harvested: number; milestone: number }>
-} | null {
+  visitors: number
   compost: number
 } | null {
+  if (!memberData) {
+    return null
   }
 
   const garden = memberData.garden
 
   if (!garden) {
     return null
-  if (!garden) {
-    return null
+  }
+
   const experience = garden.garden_experience || 0
   const level = calculateGardenLevel(experience)
 
@@ -501,12 +504,15 @@ export function parseGarden(memberData: any): {
     name: formatCropName(crop),
     harvested: data?.harvested || 0,
     milestone: data?.milestone || 1
-  let visitorCount = 0
-  const uniqueVisitors = garden.unique_visitors
   }))
 
+  let visitorCount = 0
+  const uniqueVisitors = garden.unique_visitors
+  
+  if (Array.isArray(uniqueVisitors)) {
     visitorCount = uniqueVisitors.length
   } else if (typeof uniqueVisitors === 'number') {
+    visitorCount = uniqueVisitors
   }
 
   return {
@@ -514,17 +520,15 @@ export function parseGarden(memberData: any): {
     crops,
     visitors: visitorCount,
     compost: garden.compost?.total || 0
-  return {
-    level,
+  }
+}
 
 function calculateGardenLevel(experience: number): number {
   const levels = [
-  }, 20000, 35000, 55000, 80000, 110000,
-    145000, 185000, 230000, 280000, 335000, 395000, 460000, 530000, 605000, 685000
     0, 1000, 2500, 5000, 10000, 20000, 35000, 55000, 80000, 110000,
     145000, 185000, 230000, 280000, 335000, 395000, 460000, 530000, 605000, 685000
-  for (let i = levels.length - 1; i >= 0; i--) {
-    if (experience >= levels[i]) {
+  ]
+  
   for (let i = levels.length - 1; i >= 0; i--) {
     if (experience >= levels[i]) {
       return i + 1
@@ -532,15 +536,17 @@ function calculateGardenLevel(experience: number): number {
   }
 
   return 1
-}tion formatCropName(crop: string): string {
-  if (!crop || typeof crop !== 'string') {
-    return 'Unknown'
+}
+
+function formatCropName(crop: string): string {
   if (!crop || typeof crop !== 'string') {
     return 'Unknown'
   }
+  
+  return crop
     .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
 }
 
 export function parseEquipment(memberData: any): {
@@ -550,8 +556,6 @@ export function parseEquipment(memberData: any): {
 } {
   const result = {
     armor: [] as Array<{ name: string; rarity: string }>,
-  const result = {
-    armor: [] as Array<{ name: string; rarity: string }>,ng }>
     equipment: [] as Array<{ name: string; rarity: string }>,
     accessories: [] as Array<{ name: string; rarity: string }>
   }
@@ -562,7 +566,7 @@ export function parseEquipment(memberData: any): {
 
   const inventory = memberData.inventory || {}
 
-    
+  const parseItems = (items: any) => {
     let itemArray: any[] = []
     if (Array.isArray(items)) {
       itemArray = items
@@ -571,49 +575,49 @@ export function parseEquipment(memberData: any): {
     }
     
     return itemArray
-    )
-    return itemArray
-      .filter(item => item?.tag?.display?.Name),
+      .filter(item => item?.tag?.display?.Name)
+      .map(item => ({
+        name: cleanItemName(item.tag.display.Name),
         rarity: (item.tag?.ExtraAttributes?.rarity || 'COMMON').toUpperCase()
       }))
-        rarity: (item.tag?.ExtraAttributes?.rarity || 'COMMON').toUpperCase()
+  }
 
   result.armor = parseItems(inventory.inv_armor?.data)
   result.equipment = parseItems(inventory.equipment_contents?.data)
-  result.armor = parseItems(inventory.inv_armor?.data)
-  result.equipment = parseItems(inventory.equipment_contents?.data)
   result.accessories = parseItems(inventory.bag_contents?.talisman_bag?.data)
-}
+
   return result
-export function parsePet(memberData: any): {
+}
 
 export function parsePet(memberData: any): {
   name: string
   level: number
   rarity: string
-  type: stringata) {
+  type: string
 } | null {
-  }
+  if (!memberData) {
     return null
+  }
+
   const pets = memberData.pets_data?.pets
   
-  const pets = memberData.pets_data?.pets
-    return null
   if (!pets || !Array.isArray(pets) || pets.length === 0) {
     return null
-  }onst activePet = pets.find((p: any) => p && p.active === true)
+  }
 
   const activePet = pets.find((p: any) => p && p.active === true)
 
   if (!activePet || !activePet.type) {
+    return null
+  }
 
   const tier = activePet.tier || 'COMMON'
   const exp = activePet.exp || 0
-  const tier = activePet.tier || 'COMMON'
-  const exp = activePet.exp || 0
 
+  return {
+    name: formatPetName(activePet.type),
+    type: activePet.type,
     level: calculatePetLevel(exp, tier),
-    rarity: tier.toLowerCase(),
-    level: calculatePetLevel(exp, tier),
-    rarity: tier.toLowerCase(),
+    rarity: tier.toLowerCase()
+  }
 }

@@ -2,18 +2,18 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, CheckCircle, XCircle, Clock } from '
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { ArrowLeft, CheckCircle, XCircle, Clock } from '@phosphor-icons/react'
+import { fetchMinecraftUUID, fetchSkyblockProfiles } from '@/lib/hypixel-api'
 
+interface TestResult {
   username: string
-
-  profileCount?: numbe
+  status: 'pending' | 'success' | 'error'
+  message: string
+  timestamp: number
+  uuid?: string
+  profileCount?: number
 }
-interface TestingPanelProps {
-}
-const TEST_USER
-  'Dream',
-]
-e
 
 interface TestingPanelProps {
   onClose: () => void
@@ -68,39 +68,41 @@ export function TestingPanel({ onClose }: TestingPanelProps) {
                 }
               : result
           ))
+        }
+      } catch (error) {
+        setTestResults(prev => prev.map(result => 
+          result.username === username && result.status === 'pending'
+            ? {
+                ...result,
+                status: 'error',
+                message: error instanceof Error ? error.message : 'Failed to fetch UUID'
+              }
+            : result
+        ))
+      }
+    }
 
+    setIsRunning(false)
   }
-  const successCount = testResults.filter(r => r.s
 
-    <div classN
-        <header className=
-            <h1 className="text-
+  const successCount = testResults.filter(r => r.status === 'success').length
+  const errorCount = testResults.filter(r => r.status === 'error').length
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <header className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-3xl md:text-4xl text-primary tracking-tight font-heading">
+              API Testing Panel
             </h1>
-              <
-            </Button
-          
-       
-
-              onClick={runTests}
-     
-
-                  <div 
-   
-
-                  Run Test Suite
-              )}
-
-          
-                  <CheckCircle size={16} weight=
-                </Badge>
-                  <XCircle size={
-                </Badge>
-            )}
-        </header>
-        <Card cla
-            Test Results
-          <ScrollArea className="h-[4
-              {tes
+            <Button 
+              variant="ghost" 
+              onClick={onClose}
+              className="gap-2"
+            >
+              <ArrowLeft size={20} />
+              Back
             </Button>
           </div>
           <p className="text-muted-foreground font-body">
@@ -187,7 +189,7 @@ export function TestingPanel({ onClose }: TestingPanelProps) {
                         </Badge>
                       )}
                     </div>
-                    {result.status === 'success' && (
+                    {result.status === 'success' && result.profileCount !== undefined && (
                       <p className="text-sm text-green-500 font-mono">
                         ✓ {result.profileCount} profile(s) found
                       </p>
@@ -207,19 +209,6 @@ export function TestingPanel({ onClose }: TestingPanelProps) {
         </Card>
 
         <Card className="p-6 border-2 bg-muted/30">
-          <h3 className="text-lg font-semibold mb-3 text-foreground font-body">
-            About This Test
-          </h3>
-          <ul className="text-xs text-muted-foreground font-body space-y-1">
-            <li>• Includes both valid and invalid usernames to test error handling</li>
-            <li>• Tests the complete API flow: Mojang UUID lookup → Hypixel Skyblock profiles</li>
-            <li>• Uses the same API calls as the main search functionality</li>
-          </ul>
-        </Card>
-      </div>
-    </div>
-  )
-}
           <h3 className="text-lg font-semibold mb-3 text-foreground font-body">
             About This Test
           </h3>

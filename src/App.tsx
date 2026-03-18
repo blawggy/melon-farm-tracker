@@ -46,6 +46,7 @@ interface ComparisonPlayer {
 function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
   const [playerData, setPlayerData] = useState<PlayerData | null>(null)
   const [selectedProfile, setSelectedProfile] = useState<HypixelProfile | null>(null)
@@ -62,6 +63,7 @@ function App() {
     }
 
     setLoading(true)
+    setLoadingMessage('Looking up player...')
     setError(null)
     setPlayerData(null)
     setSelectedProfile(null)
@@ -69,6 +71,7 @@ function App() {
 
     try {
       const mojangData = await fetchMinecraftUUID(searchQuery.trim())
+      setLoadingMessage('Fetching Skyblock profiles...')
       const profiles = await fetchSkyblockProfiles(mojangData.id)
 
       setPlayerData({
@@ -93,6 +96,7 @@ function App() {
       toast.error(message)
     } finally {
       setLoading(false)
+      setLoadingMessage('')
     }
   }
 
@@ -733,7 +737,7 @@ function App() {
                   {loading ? (
                     <>
                       <div className="animate-spin h-5 w-5 border-2 border-current border-t-transparent rounded-full" />
-                      Searching...
+                      {loadingMessage || 'Searching...'}
                     </>
                   ) : (
                     <>
@@ -865,9 +869,18 @@ function App() {
             <p className="text-lg text-muted-foreground font-body mb-2">
               Enter a username to get started
             </p>
-            <p className="text-sm text-muted-foreground font-body">
+            <p className="text-sm text-muted-foreground font-body mb-6">
               Analyze farming fortune, equipment, pets, and garden progress
             </p>
+            <Card className="max-w-md mx-auto p-4 bg-muted/30 border-muted">
+              <p className="text-xs text-muted-foreground font-body text-left">
+                <strong className="text-foreground">Tips:</strong><br />
+                • Enter a valid Minecraft Java Edition username<br />
+                • Player must have logged into Hypixel Skyblock<br />
+                • The app tries multiple APIs for reliability<br />
+                • If one fails, it automatically tries another
+              </p>
+            </Card>
           </motion.div>
         )}
       </div>

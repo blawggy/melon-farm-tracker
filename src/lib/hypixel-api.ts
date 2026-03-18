@@ -26,51 +26,92 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
     throw new Error('Username must be between 3 and 16 characters')
   }
 
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
+  const apis = [
+    {
+      name: 'Mojang Official',
+      url: `https://api.mojang.com/users/profiles/minecraft/${cleanUsername}`,
+      parse: (data: any) => ({
+        id: data.id,
+        name: data.name
+      })
+    },
+    {
+      name: 'Ashcon',
+      url: `https://api.ashcon.app/mojang/v2/user/${cleanUsername}`,
+      parse: (data: any) => ({
+        id: data.uuid.replace(/-/g, ''),
+        name: data.username
+      })
+    },
+    {
+      name: 'PlayerDB',
+      url: `https://playerdb.co/api/player/minecraft/${cleanUsername}`,
+      parse: (data: any) => ({
+        id: data.data.player.id,
+        name: data.data.player.username
+      })
+    }
+  ]
 
-    const response = await fetch(`https://api.ashcon.app/mojang/v2/user/${cleanUsername}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      signal: controller.signal
-    })
+  let lastError: Error | null = null
 
-    clearTimeout(timeoutId)
+  for (const api of apis) {
+    try {
+      console.log(`🔍 Trying ${api.name} API...`)
+      
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 8000)
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error('Player not found. Please check the username.')
+      const response = await fetch(api.url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Player not found. Please check the username.')
+        }
+        if (response.status === 429) {
+          console.log(`⚠️ ${api.name} rate limited, trying next API...`)
+          continue
+        }
+        throw new Error(`API returned status ${response.status}`)
       }
-      if (response.status === 429) {
-        throw new Error('Too many requests. Please try again in a moment.')
+
+      const data = await response.json()
+      const parsed = api.parse(data)
+
+      if (!parsed.id || !parsed.name) {
+        throw new Error('Invalid response from API')
       }
-      throw new Error(`Failed to fetch player data (Status: ${response.status})`)
-    }
 
-    const data = await response.json()
+      console.log(`✅ Found player via ${api.name}:`, parsed.name, 'UUID:', parsed.id)
 
-    if (!data.uuid || !data.username) {
-      throw new Error('Invalid response from API')
-    }
-
-    console.log('🔍 Found player:', data.username, 'UUID:', data.uuid)
-
-    return {
-      id: data.uuid.replace(/-/g, ''),
-      name: data.username
-    }
-  } catch (error) {
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        throw new Error('Request timeout - please try again')
+      return parsed
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.log(`⏱️ ${api.name} timeout, trying next API...`)
+          lastError = new Error('Request timeout')
+          continue
+        }
+        if (error.message.includes('Player not found')) {
+          throw error
+        }
+        console.log(`❌ ${api.name} failed:`, error.message)
+        lastError = error
+        continue
       }
-      throw error
+      lastError = new Error('Unknown error')
     }
-    throw new Error('Network error while fetching player data')
   }
+
+  throw lastError || new Error('All APIs failed to fetch player data. Please try again later.')
 }
 
 export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfile[]> {

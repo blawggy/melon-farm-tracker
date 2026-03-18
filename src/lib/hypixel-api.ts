@@ -125,6 +125,22 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
   
   const apis = [
     {
+      name: 'Slothpixel (Hypixel Proxy)',
+      url: `https://api.slothpixel.me/api/skyblock/profiles/${cleanUUID}`,
+      parse: (data: any) => {
+        if (!data || !Array.isArray(data) || data.length === 0) {
+          throw new Error('No profiles found')
+        }
+        
+        return data.map((profile: any) => ({
+          profile_id: profile.profile_id || profile.cute_name,
+          cute_name: profile.cute_name || 'Unknown',
+          selected: profile.selected || false,
+          members: profile.members || {}
+        }))
+      }
+    },
+    {
       name: 'Sky.shiiyu.moe',
       url: `https://sky.shiiyu.moe/api/v2/profile/${cleanUUID}`,
       parse: (data: any) => {
@@ -141,7 +157,7 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
       }
     },
     {
-      name: 'SkyCrypt',
+      name: 'SkyCrypt API',
       url: `https://sky.lea.moe/api/v2/profile/${cleanUUID}`,
       parse: (data: any) => {
         if (!data.profiles || Object.keys(data.profiles).length === 0) {
@@ -153,22 +169,6 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
           cute_name: profile.cute_name || profileId,
           selected: profile.selected || false,
           members: profile.members || {}
-        }))
-      }
-    },
-    {
-      name: 'Hypixel-API-Reborn Proxy',
-      url: `https://hypixel-api-proxy.herokuapp.com/api/v2/skyblock/profiles?uuid=${cleanUUID}`,
-      parse: (data: any) => {
-        if (!data.profiles || data.profiles.length === 0) {
-          throw new Error('No profiles found')
-        }
-        
-        return data.profiles.map((profile: any) => ({
-          profile_id: profile.profile_id,
-          cute_name: profile.cute_name,
-          selected: profile.selected || false,
-          members: profile.members
         }))
       }
     }
@@ -200,7 +200,8 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
           continue
         }
         if (response.status === 404) {
-          throw new Error('Player has no Skyblock profiles.')
+          console.log(`⚠️ ${api.name} returned 404, trying next API...`)
+          continue
         }
         throw new Error(`API returned status ${response.status}`)
       }
@@ -228,7 +229,8 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
           continue
         }
         if (error.message.includes('No Skyblock profiles') || error.message.includes('no Skyblock profiles')) {
-          throw error
+          console.log(`❌ Player has no Skyblock profiles`)
+          throw new Error('Player has no Skyblock profiles. Make sure they have played Hypixel Skyblock and have API access enabled.')
         }
         console.log(`❌ ${api.name} failed:`, error.message)
         lastError = error

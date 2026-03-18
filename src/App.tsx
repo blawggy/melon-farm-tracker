@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Plus, Trash, ChartBar, Clock, Coins, Plant, Trophy, Target, Sparkle, Lock, Lightning, Star, Medal } from '@phosphor-icons/react'
 import { toast } from 'sonner'
+import { Toaster } from '@/components/ui/sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface FarmingSession {
@@ -153,6 +154,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background">
+      <Toaster />
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         <header className="mb-8 text-center">
           <div className="flex items-center justify-center gap-3 mb-2">

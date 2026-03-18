@@ -6,7 +6,8 @@ export interface ProfileData {
       equipment: Array<{ name: string; fortune: number }>
       accessories: Array<{ name: string; fortune: number }>
       pet: { name: string; fortune: number } | null
-      reforges: Array<{ name: string; fortune: number }>
+      skills: Array<{ name: string; fortune: number }>
+      misc: Array<{ name: string; fortune: number }>
     }
   }
   garden: {

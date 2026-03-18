@@ -17,24 +17,27 @@ import { Toaster } from '@/components/ui/sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getCropIcon, getPetIcon, getEquipmentIcon, getIconEmoji } from '@/lib/skyblock-icons'
 import {
-  fetchMinecraftUUID,
+  fetchPlayerUUID,
   fetchSkyblockProfiles,
-  parseFarmingFortune,
-  parseGarden,
-  parseEquipment,
-  parsePet,
-  type HypixelProfile
-} from '@/lib/hypixel-api-v2'
+  parseProfileData
+} from '@/lib/skyblock-data-parser'
 import { calculateMilestoneBadge } from '@/lib/utils'
 import { ComparisonView } from '@/components/ComparisonView'
 import { GuidesView } from '@/components/GuidesView'
 import { TestingPanel } from '@/components/TestingPanel'
 import type { ProfileData } from '@/types'
 
+interface SkyblockProfile {
+  profile_id: string
+  cute_name: string
+  selected?: boolean
+  members: Record<string, any>
+}
+
 interface PlayerData {
   uuid: string
   username: string
-  profiles: HypixelProfile[]
+  profiles: SkyblockProfile[]
 }
 
 interface ComparisonPlayer {
@@ -50,7 +53,7 @@ function App() {
   const [loadingMessage, setLoadingMessage] = useState<string>('')
   const [error, setError] = useState<string | null>(null)
   const [playerData, setPlayerData] = useState<PlayerData | null>(null)
-  const [selectedProfile, setSelectedProfile] = useState<HypixelProfile | null>(null)
+  const [selectedProfile, setSelectedProfile] = useState<SkyblockProfile | null>(null)
   const [profileData, setProfileData] = useState<ProfileData | null>(null)
   const [recentSearches, setRecentSearches] = useKV<string[]>('recent-searches', [])
   const [comparisonPlayers, setComparisonPlayers] = useKV<ComparisonPlayer[]>('comparison-players', [])
@@ -72,7 +75,7 @@ function App() {
     setProfileData(null)
 
     try {
-      const mojangData = await fetchMinecraftUUID(searchQuery.trim())
+      const mojangData = await fetchPlayerUUID(searchQuery.trim())
       setLoadingMessage('Fetching Skyblock profiles...')
       const profiles = await fetchSkyblockProfiles(mojangData.id)
 
@@ -102,41 +105,14 @@ function App() {
     }
   }
 
-  const loadProfile = async (uuid: string, profile: HypixelProfile) => {
+  const loadProfile = async (uuid: string, profile: SkyblockProfile) => {
     setLoading(true)
     setError(null)
     setSelectedProfile(profile)
 
     try {
-      const memberData = profile.members[uuid]
-
-      if (!memberData) {
-        throw new Error('Player data not found in this profile')
-      }
-
-      console.log('📦 Full member data structure:', memberData)
-      console.log('📦 Member data keys:', Object.keys(memberData))
-      
-      if (memberData.garden_player_data) {
-        console.log('🌱 garden_player_data found:', Object.keys(memberData.garden_player_data))
-      }
-      
-      if (memberData.inventory) {
-        console.log('🎒 inventory found:', Object.keys(memberData.inventory))
-      }
-      
-      if (memberData.pets_data) {
-        console.log('🐾 pets_data found:', Object.keys(memberData.pets_data))
-      }
-
-      const fortune = parseFarmingFortune(memberData)
-      const garden = parseGarden(memberData)
-      const equipment = parseEquipment(memberData)
-      const pet = parsePet(memberData)
-
-      console.log('✅ Parsed data:', { fortune, garden, equipment, pet })
-
-      setProfileData({ fortune, garden, equipment, pet })
+      const data = parseProfileData(profile, uuid)
+      setProfileData(data)
       toast.success('Profile loaded!')
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to load profile'
@@ -451,6 +427,38 @@ function App() {
                   </h2>
 
                   <div className="space-y-6">
+                    {profileData.fortune.sources.skills.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-3">Skills</h3>
+                        <div className="space-y-2">
+                          {profileData.fortune.sources.skills.map((source, i) => (
+                            <div key={i} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                              <span className="text-sm font-mono text-foreground">{source.name}</span>
+                              <Badge variant="secondary" className="font-mono">
+                                +{source.fortune} ☘
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {profileData.fortune.sources.misc.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-3">Miscellaneous</h3>
+                        <div className="space-y-2">
+                          {profileData.fortune.sources.misc.map((source, i) => (
+                            <div key={i} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                              <span className="text-sm font-mono text-foreground">{source.name}</span>
+                              <Badge variant="secondary" className="font-mono">
+                                +{source.fortune} ☘
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {profileData.fortune.sources.armor.length > 0 && (
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-3">Armor</h3>

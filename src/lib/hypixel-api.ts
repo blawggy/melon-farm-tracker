@@ -311,47 +311,53 @@ export function parseFarmingFortune(memberData: any): {
 
   if (inventory?.inv_armor?.data) {
     const armorItems = parseNBTData(inventory.inv_armor.data)
-    armorItems.forEach((item: any) => {
-      if (item?.tag?.display?.Name) {
-        const fortune = extractFortuneFromItem(item)
-        if (fortune > 0) {
-          sources.armor.push({
-            name: cleanItemName(item.tag.display.Name),
-            fortune
-          })
+    if (Array.isArray(armorItems)) {
+      armorItems.forEach((item: any) => {
+        if (item?.tag?.display?.Name) {
+          const fortune = extractFortuneFromItem(item)
+          if (fortune > 0) {
+            sources.armor.push({
+              name: cleanItemName(item.tag.display.Name),
+              fortune
+            })
+          }
         }
-      }
-    })
+      })
+    }
   }
 
   if (inventory?.equipment_contents?.data) {
     const equipmentItems = parseNBTData(inventory.equipment_contents.data)
-    equipmentItems.forEach((item: any) => {
-      if (item?.tag?.display?.Name) {
-        const fortune = extractFortuneFromItem(item)
-        if (fortune > 0) {
-          sources.equipment.push({
-            name: cleanItemName(item.tag.display.Name),
-            fortune
-          })
+    if (Array.isArray(equipmentItems)) {
+      equipmentItems.forEach((item: any) => {
+        if (item?.tag?.display?.Name) {
+          const fortune = extractFortuneFromItem(item)
+          if (fortune > 0) {
+            sources.equipment.push({
+              name: cleanItemName(item.tag.display.Name),
+              fortune
+            })
+          }
         }
-      }
-    })
+      })
+    }
   }
 
   if (inventory?.bag_contents?.talisman_bag?.data) {
     const accessoryItems = parseNBTData(inventory.bag_contents.talisman_bag.data)
-    accessoryItems.forEach((item: any) => {
-      if (item?.tag?.display?.Name) {
-        const fortune = extractFortuneFromItem(item)
-        if (fortune > 0) {
-          sources.accessories.push({
-            name: cleanItemName(item.tag.display.Name),
-            fortune
-          })
+    if (Array.isArray(accessoryItems)) {
+      accessoryItems.forEach((item: any) => {
+        if (item?.tag?.display?.Name) {
+          const fortune = extractFortuneFromItem(item)
+          if (fortune > 0) {
+            sources.accessories.push({
+              name: cleanItemName(item.tag.display.Name),
+              fortune
+            })
+          }
         }
-      }
-    })
+      })
+    }
   }
 
   const petData = memberData.pets_data?.pets || memberData.pets
@@ -505,12 +511,6 @@ export function parseGarden(memberData: any): {
 
   if (!gardenData) {
     console.log('⚠️ parseGarden: No garden data found')
-    console.log('🔍 Available data:', {
-      hasGarden: !!memberData.garden,
-      hasGardenPlayerData: !!memberData.garden_player_data,
-      hasPlayerData: !!memberData.player_data,
-      hasPlayerDataGarden: !!memberData.player_data?.garden
-    })
     return {
       level: 0,
       crops: [],
@@ -520,6 +520,7 @@ export function parseGarden(memberData: any): {
   }
   
   console.log('✅ parseGarden: Found garden data')
+  console.log('🔍 Garden data keys:', Object.keys(gardenData))
 
   const experience = gardenData.garden_experience || gardenData.experience || 0
   console.log('🔍 Garden experience:', experience)
@@ -664,6 +665,10 @@ export function parseEquipment(memberData: any): {
   const parseItems = (nbtData: any): Array<{ name: string; rarity: string }> => {
     const items = parseNBTData(nbtData)
     
+    if (!Array.isArray(items)) {
+      return []
+    }
+    
     return items
       .filter((item: any) => item && item.tag?.display?.Name)
       .map((item: any) => {
@@ -691,17 +696,19 @@ export function parseEquipment(memberData: any): {
   if (inventory?.inv_armor?.data) {
     console.log('✅ parseEquipment: Found armor data')
     const armorItems = parseNBTData(inventory.inv_armor.data)
-    result.armor = armorItems
-      .filter((item: any) => item && item.tag?.display?.Name)
-      .map((item: any) => {
-        const displayName = item.tag.display.Name
-        const rarity = item.tag?.ExtraAttributes?.rarity || 'COMMON'
-        
-        return {
-          name: cleanItemName(displayName),
-          rarity: rarity.toString().toUpperCase()
-        }
-      })
+    if (Array.isArray(armorItems)) {
+      result.armor = armorItems
+        .filter((item: any) => item && item.tag?.display?.Name)
+        .map((item: any) => {
+          const displayName = item.tag.display.Name
+          const rarity = item.tag?.ExtraAttributes?.rarity || 'COMMON'
+          
+          return {
+            name: cleanItemName(displayName),
+            rarity: rarity.toString().toUpperCase()
+          }
+        })
+    }
   } else {
     console.log('⚠️ parseEquipment: No armor data found')
   }
@@ -747,12 +754,6 @@ export function parsePet(memberData: any): {
   
   if (!pets || !Array.isArray(pets) || pets.length === 0) {
     console.log('⚠️ parsePet: No pets found')
-    console.log('🔍 Available data:', {
-      hasPetsData: !!memberData.pets_data,
-      hasPets: !!memberData.pets,
-      petsType: typeof pets,
-      isArray: Array.isArray(pets)
-    })
     return null
   }
 
@@ -762,7 +763,6 @@ export function parsePet(memberData: any): {
 
   if (!activePet || !activePet.type) {
     console.log('⚠️ parsePet: No active pet found')
-    console.log('🔍 First pet:', pets[0])
     return null
   }
 

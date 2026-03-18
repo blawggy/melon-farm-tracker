@@ -261,82 +261,6 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
   throw lastError || new Error('All APIs failed to fetch Skyblock profiles. The player may not have any Skyblock profiles or all services are currently unavailable.')
 }
 
-export async function fetchProfile(profileId: string): Promise<HypixelProfile> {
-  const apis = [
-    {
-      name: 'Sky.shiiyu.moe',
-      url: `https://sky.shiiyu.moe/api/v2/profile/${profileId}`,
-      parse: (data: any) => {
-        if (!data.profile) {
-          throw new Error('Profile not found')
-        }
-        return {
-          profile_id: profileId,
-          cute_name: data.profile.cute_name || profileId,
-          selected: data.profile.current || false,
-          members: data.profile.members || {}
-        }
-      }
-    }
-  ]
-
-  let lastError: Error | null = null
-
-  for (const api of apis) {
-    try {
-      console.log(`🔍 Trying ${api.name} API for profile...`)
-      
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 10000)
-
-      const response = await fetch(api.url, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
-        signal: controller.signal
-      })
-
-      clearTimeout(timeoutId)
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          console.log(`⚠️ ${api.name} rate limited, trying next API...`)
-          continue
-        }
-        if (response.status === 404) {
-          throw new Error('Profile not found')
-        }
-        throw new Error(`API returned status ${response.status}`)
-      }
-
-      const data = await response.json()
-      const profile = api.parse(data)
-
-      console.log(`✅ Loaded profile via ${api.name}`)
-
-      return profile
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          console.log(`⏱️ ${api.name} timeout, trying next API...`)
-          lastError = new Error('Request timeout')
-          continue
-        }
-        if (error.message.includes('Profile not found')) {
-          throw error
-        }
-        console.log(`❌ ${api.name} failed:`, error.message)
-        lastError = error
-        continue
-      }
-      lastError = new Error('Unknown error')
-    }
-  }
-
-  throw lastError || new Error('Failed to load profile - all services are currently unavailable.')
-}
-
 export function parseFarmingFortune(memberData: any): {
   total: number
   sources: {
@@ -357,12 +281,11 @@ export function parseFarmingFortune(memberData: any): {
 
   let total = 0
 
-  const stats = memberData?.player_stats?.farming || {}
-  const inventory = memberData?.inventory || {}
-
-  if (stats.total_farming_fortune) {
-    total = stats.total_farming_fortune
+  if (!memberData) {
+    return { total, sources }
   }
+
+  const inventory = memberData.inventory || {}
 
   const armorItems = [
     { slot: 'helmet', data: inventory.inv_armor?.data?.[3] },
@@ -371,20 +294,17 @@ export function parseFarmingFortune(memberData: any): {
     { slot: 'boots', data: inventory.inv_armor?.data?.[0] }
   ]
 
-  if (Array.isArray(armorItems)) {
-    armorItems.forEach(({ slot, data }) => {
-      if (data?.tag?.display?.Name) {
-        const fortune = extractFortuneFromItem(data)
-        if (fortune > 0) {
-          sources.armor.push({
-            name: cleanItemName(data.tag.display.Name),
-            fortune
-          })
-          total += fortune
-        }
+  armorItems.forEach(({ data }) => {
+    if (data?.tag?.display?.Name) {
+      const fortune = extractFortuneFromItem(data)
+      if (fortune > 0) {
+        sources.armor.push({
+          name: cleanItemName(data.tag.display.Name),
+          fortune
+        })
       }
-    })
-  }
+    }
+  })
 
   const equipmentSlots = inventory.equipment_contents?.data
   let equipmentArray: any[] = []
@@ -397,24 +317,44 @@ export function parseFarmingFortune(memberData: any): {
     }
   }
   
-  if (Array.isArray(equipmentArray)) {
-    equipmentArray.forEach((item: any) => {
-      if (item?.tag?.display?.Name) {
-        const fortune = extractFortuneFromItem(item)
-        if (fortune > 0) {
-          sources.equipment.push({
-            name: cleanItemName(item.tag.display.Name),
-            fortune
-          })
-          total += fortune
-        }
+  equipmentArray.forEach((item: any) => {
+    if (item?.tag?.display?.Name) {
+      const fortune = extractFortuneFromItem(item)
+      if (fortune > 0) {
+        sources.equipment.push({
+          name: cleanItemName(item.tag.display.Name),
+          fortune
+        })
       }
-    })
-  }
+    }
+  })
 
-  const petData = memberData?.pets_data?.pets
-  if (petData && Array.isArray(petData)) {
-    const activePet = petData.find((p: any) => p.active)
+  const talismanBag = inventory.bag_contents?.talisman_bag?.data
+  let accessoryArray: any[] = []
+  
+  if (talismanBag) {
+    if (Array.isArray(talismanBag)) {
+      accessoryArray = talismanBag
+    } else if (typeof talismanBag === 'object') {
+      accessoryArray = Object.values(talismanBag)
+    }
+  }
+  
+  accessoryArray.forEach((item: any) => {
+    if (item?.tag?.display?.Name) {
+      const fortune = extractFortuneFromItem(item)
+      if (fortune > 0) {
+        sources.accessories.push({
+          name: cleanItemName(item.tag.display.Name),
+          fortune
+        })
+      }
+    }
+  })
+
+  const petData = memberData.pets_data?.pets
+  if (petData && Array.isArray(petData) && petData.length > 0) {
+    const activePet = petData.find((p: any) => p.active === true)
     if (activePet && activePet.type) {
       const petFortune = calculatePetFortune(activePet)
       if (petFortune > 0) {
@@ -422,9 +362,15 @@ export function parseFarmingFortune(memberData: any): {
           name: formatPetName(activePet.type),
           fortune: petFortune
         }
-        total += petFortune
       }
     }
+  }
+
+  total = [...sources.armor, ...sources.equipment, ...sources.accessories]
+    .reduce((sum, item) => sum + item.fortune, 0)
+  
+  if (sources.pet) {
+    total += sources.pet.fortune
   }
 
   return { total, sources }
@@ -433,31 +379,48 @@ export function parseFarmingFortune(memberData: any): {
 function extractFortuneFromItem(item: any): number {
   let fortune = 0
 
-  if (item?.tag?.ExtraAttributes) {
-    const attrs = item.tag.ExtraAttributes
+  if (!item?.tag?.ExtraAttributes) {
+    return fortune
+  }
 
-    if (attrs.farming_for_dummies_count) {
-      fortune += attrs.farming_for_dummies_count
+  const attrs = item.tag.ExtraAttributes
+
+  if (attrs.farming_for_dummies_count) {
+    fortune += attrs.farming_for_dummies_count
+  }
+
+  if (attrs.gems && typeof attrs.gems === 'object') {
+    const gemValues = Object.values(attrs.gems)
+    gemValues.forEach((gem: any) => {
+      if (gem && typeof gem === 'object') {
+        if (gem.quality && typeof gem.quality === 'string' && gem.quality.includes('FARMING')) {
+          fortune += 10
+        }
+      }
+    })
+  }
+
+  if (attrs.enchantments && typeof attrs.enchantments === 'object') {
+    if (typeof attrs.enchantments.harvesting === 'number') {
+      fortune += attrs.enchantments.harvesting * 12.5
     }
-
-    if (attrs.gems && typeof attrs.gems === 'object') {
-      const gemValues = Object.values(attrs.gems)
-      if (Array.isArray(gemValues)) {
-        gemValues.forEach((gem: any) => {
-          if (gem?.quality && gem.quality.includes('FARMING')) {
-            fortune += 10
-          }
-        })
-      }
+    if (typeof attrs.enchantments.cultivating === 'number') {
+      fortune += attrs.enchantments.cultivating * 2
     }
+    if (typeof attrs.enchantments.dedication === 'number') {
+      fortune += attrs.enchantments.dedication * 4
+    }
+  }
 
-    if (attrs.enchantments) {
-      if (attrs.enchantments.harvesting) {
-        fortune += attrs.enchantments.harvesting * 12.5
-      }
-      if (attrs.enchantments.cultivating) {
-        fortune += attrs.enchantments.cultivating * 2
-      }
+  if (attrs.modifier && typeof attrs.modifier === 'string') {
+    const reforges: Record<string, number> = {
+      'blessed': 5,
+      'bountiful': 5,
+      'robust': 10
+    }
+    const reforgeName = attrs.modifier.toLowerCase()
+    if (reforges[reforgeName]) {
+      fortune += reforges[reforgeName]
     }
   }
 
@@ -465,24 +428,24 @@ function extractFortuneFromItem(item: any): number {
 }
 
 function calculatePetFortune(pet: any): number {
-  const farmingPets = ['ELEPHANT', 'MOOSHROOM_COW', 'BEE', 'RABBIT']
-  
-  if (!farmingPets.includes(pet.type)) {
+  if (!pet || !pet.type) {
     return 0
   }
 
-  const level = pet.exp ? calculatePetLevel(pet.exp, pet.tier) : 1
+  const farmingPets: Record<string, { formula: (level: number) => number }> = {
+    'ELEPHANT': { formula: (level) => Math.floor(level * 0.75) },
+    'MOOSHROOM_COW': { formula: (level) => Math.floor(level * 0.5) },
+    'BEE': { formula: (level) => Math.floor(level * 0.3) },
+    'RABBIT': { formula: (level) => Math.floor(level * 0.2) }
+  }
   
-  let fortune = 0
-  if (pet.type === 'ELEPHANT') {
-    fortune = Math.floor(level * 0.75)
-  } else if (pet.type === 'MOOSHROOM_COW') {
-    fortune = Math.floor(level * 0.5)
-  } else if (pet.type === 'BEE') {
-    fortune = Math.floor(level * 0.3)
+  const petConfig = farmingPets[pet.type]
+  if (!petConfig) {
+    return 0
   }
 
-  return fortune
+  const level = pet.exp ? calculatePetLevel(pet.exp, pet.tier || 'COMMON') : 1
+  return petConfig.formula(level)
 }
 
 function calculatePetLevel(exp: number, tier: string): number {
@@ -495,17 +458,23 @@ function calculatePetLevel(exp: number, tier: string): number {
     MYTHIC: 200
   }
 
-  const maxLevel = maxLevels[tier] || 100
   const expPerLevel = tier === 'MYTHIC' ? 25000 : 10000
+  const maxLevel = maxLevels[tier] || 100
 
   return Math.min(Math.floor(exp / expPerLevel) + 1, maxLevel)
 }
 
 function cleanItemName(name: string): string {
+  if (!name || typeof name !== 'string') {
+    return 'Unknown'
+  }
   return name.replace(/§[0-9a-fk-or]/gi, '').trim()
 }
 
 function formatPetName(type: string): string {
+  if (!type || typeof type !== 'string') {
+    return 'Unknown Pet'
+  }
   return type
     .split('_')
     .map(word => word.charAt(0) + word.slice(1).toLowerCase())
@@ -518,7 +487,11 @@ export function parseGarden(memberData: any): {
   visitors: number
   compost: number
 } | null {
-  const garden = memberData?.garden
+  if (!memberData) {
+    return null
+  }
+
+  const garden = memberData.garden
 
   if (!garden) {
     return null
@@ -530,14 +503,23 @@ export function parseGarden(memberData: any): {
   const cropData = garden.crops || {}
   const crops = Object.entries(cropData).map(([crop, data]: [string, any]) => ({
     name: formatCropName(crop),
-    harvested: data.harvested || 0,
-    milestone: data.milestone || 0
+    harvested: data?.harvested || 0,
+    milestone: data?.milestone || 1
   }))
+
+  const uniqueVisitors = garden.unique_visitors
+  let visitorCount = 0
+  
+  if (Array.isArray(uniqueVisitors)) {
+    visitorCount = uniqueVisitors.length
+  } else if (typeof uniqueVisitors === 'number') {
+    visitorCount = uniqueVisitors
+  }
 
   return {
     level,
     crops,
-    visitors: garden.unique_visitors?.length || 0,
+    visitors: visitorCount,
     compost: garden.compost?.total || 0
   }
 }
@@ -558,6 +540,9 @@ function calculateGardenLevel(experience: number): number {
 }
 
 function formatCropName(crop: string): string {
+  if (!crop || typeof crop !== 'string') {
+    return 'Unknown'
+  }
   return crop
     .toLowerCase()
     .split('_')
@@ -570,7 +555,17 @@ export function parseEquipment(memberData: any): {
   equipment: Array<{ name: string; rarity: string }>
   accessories: Array<{ name: string; rarity: string }>
 } {
-  const inventory = memberData?.inventory || {}
+  const result = {
+    armor: [] as Array<{ name: string; rarity: string }>,
+    equipment: [] as Array<{ name: string; rarity: string }>,
+    accessories: [] as Array<{ name: string; rarity: string }>
+  }
+
+  if (!memberData) {
+    return result
+  }
+
+  const inventory = memberData.inventory || {}
 
   const parseItems = (items: any): Array<{ name: string; rarity: string }> => {
     if (!items) return []
@@ -586,15 +581,15 @@ export function parseEquipment(memberData: any): {
       .filter(item => item?.tag?.display?.Name)
       .map(item => ({
         name: cleanItemName(item.tag.display.Name),
-        rarity: item.tag.ExtraAttributes?.rarity || 'COMMON'
+        rarity: (item.tag?.ExtraAttributes?.rarity || 'COMMON').toUpperCase()
       }))
   }
 
-  const armor = parseItems(inventory.inv_armor?.data)
-  const equipment = parseItems(inventory.equipment_contents?.data)
-  const accessories = parseItems(inventory.bag_contents?.talisman_bag?.data)
+  result.armor = parseItems(inventory.inv_armor?.data)
+  result.equipment = parseItems(inventory.equipment_contents?.data)
+  result.accessories = parseItems(inventory.bag_contents?.talisman_bag?.data)
 
-  return { armor, equipment, accessories }
+  return result
 }
 
 export function parsePet(memberData: any): {
@@ -603,22 +598,29 @@ export function parsePet(memberData: any): {
   rarity: string
   type: string
 } | null {
-  const pets = memberData?.pets_data?.pets
+  if (!memberData) {
+    return null
+  }
+
+  const pets = memberData.pets_data?.pets
   
-  if (!pets || !Array.isArray(pets)) {
+  if (!pets || !Array.isArray(pets) || pets.length === 0) {
     return null
   }
 
-  const activePet = pets.find((p: any) => p.active)
+  const activePet = pets.find((p: any) => p && p.active === true)
 
-  if (!activePet) {
+  if (!activePet || !activePet.type) {
     return null
   }
+
+  const tier = activePet.tier || 'COMMON'
+  const exp = activePet.exp || 0
 
   return {
     name: formatPetName(activePet.type),
-    level: calculatePetLevel(activePet.exp || 0, activePet.tier || 'COMMON'),
-    rarity: activePet.tier?.toLowerCase() || 'common',
+    level: calculatePetLevel(exp, tier),
+    rarity: tier.toLowerCase(),
     type: activePet.type
   }
 }

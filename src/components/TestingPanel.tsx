@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { ArrowLeft, Play, CheckCircle, XCircle, Clock } from '@phosphor-icons/react'
-import { fetchMinecraftUUID, fetchSkyblockProfiles } from '@/lib/hypixel-api'
+import { fetchMinecraftUUID, fetchSkyblockProfiles } from '@/lib/hypixel-api-v2'
 
 interface TestingPanelProps {
   onClose: () => void

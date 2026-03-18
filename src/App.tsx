@@ -24,7 +24,7 @@ import {
   parseEquipment,
   parsePet,
   type HypixelProfile
-} from '@/lib/hypixel-api'
+} from '@/lib/hypixel-api-v2'
 import { calculateMilestoneBadge } from '@/lib/utils'
 import { ComparisonView } from '@/components/ComparisonView'
 import { GuidesView } from '@/components/GuidesView'

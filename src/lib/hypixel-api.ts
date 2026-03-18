@@ -482,49 +482,44 @@ function formatPetName(type: string): string {
 export function parseGarden(memberData: any): {
   level: number
   crops: Array<{ name: string; harvested: number; milestone: number }>
-  level: number
-  crops: Array<{ name: string; harvested: number; milestone: number }>
-  visitors: number
-  if (!memberData) {
-    return null
-  if (!memberData) {
-    return null
+} | null {
+  compost: number
+} | null {
   }
 
   const garden = memberData.garden
 
-  }
-
+  if (!garden) {
+    return null
+  if (!garden) {
+    return null
   const experience = garden.garden_experience || 0
   const level = calculateGardenLevel(experience)
 
   const cropData = garden.crops || {}
   const crops = Object.entries(cropData).map(([crop, data]: [string, any]) => ({
     name: formatCropName(crop),
-  const crops = Object.entries(cropData).map(([crop, data]: [string, any]) => ({
-    name: formatCropName(crop),
     harvested: data?.harvested || 0,
     milestone: data?.milestone || 1
-  }))visitors
   let visitorCount = 0
   const uniqueVisitors = garden.unique_visitors
-  let visitorCount = 0
-  
-  if (Array.isArray(uniqueVisitors)) {
+  }))
+
     visitorCount = uniqueVisitors.length
   } else if (typeof uniqueVisitors === 'number') {
-    visitorCount = uniqueVisitors
   }
 
+  return {
+    level,
     crops,
     visitors: visitorCount,
     compost: garden.compost?.total || 0
-    visitors: visitorCount,
-}
+  return {
+    level,
 
 function calculateGardenLevel(experience: number): number {
   const levels = [
-    0, 1000, 2500, 5000, 10000, 20000, 35000, 55000, 80000, 110000,
+  }, 20000, 35000, 55000, 80000, 110000,
     145000, 185000, 230000, 280000, 335000, 395000, 460000, 530000, 605000, 685000
     0, 1000, 2500, 5000, 10000, 20000, 35000, 55000, 80000, 110000,
     145000, 185000, 230000, 280000, 335000, 395000, 460000, 530000, 605000, 685000

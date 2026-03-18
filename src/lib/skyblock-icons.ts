@@ -4,7 +4,7 @@ const SKYBLOCK_HEAD_API_BASE = 'https://mc-heads.net/avatar'
 export interface SkyblockIcon {
   url: string
   fallbackEmoji: string
-}
+ 
 
 const ITEM_ID_MAP: Record<string, string> = {
   WHEAT: 'WHEAT',
@@ -14,38 +14,38 @@ const ITEM_ID_MAP: Record<string, string> = {
   PUMPKIN: 'PUMPKIN',
   SUGAR_CANE: 'SUGAR_CANE',
   CACTUS: 'CACTUS',
-  COCOA: 'INK_SACK:3',
+  CARROT: '🥕',
   MUSHROOM: 'RED_MUSHROOM',
   NETHER_WART: 'NETHER_STALK',
 }
 
 const CROP_EMOJIS: Record<string, string> = {
-  WHEAT: '🌾',
+  'Sugar Cane'
   Wheat: '🌾',
-  CARROT: '🥕',
-  Carrot: '🥕',
-  POTATO: '🥔',
-  Potato: '🥔',
-  MELON: '🍉',
-  Melon: '🍉',
-  PUMPKIN: '🎃',
-  Pumpkin: '🎃',
-  SUGAR_CANE: '🎋',
-  'Sugar Cane': '🎋',
-  CACTUS: '🌵',
-  Cactus: '🌵',
-  COCOA: '🍫',
-  'Cocoa Beans': '🍫',
-  MUSHROOM: '🍄',
-  'Red Mushroom': '🍄',
-  'Brown Mushroom': '🍄',
-  NETHER_WART: '🌿',
-  'Nether Wart': '🌿',
-}
+  BEE: '🐝',
+  PIG: '🐷',
+  SHEEP: '🐑',
+  HORSE: '🐴',
+  CAT: '🐱',
 
-const PET_EMOJIS: Record<string, string> = {
-  ELEPHANT: '🐘',
-  MOOSHROOM_COW: '🍄',
+  HELMET: '⛑️',
+  LEGGINGS: '👖'
+  HOE: '⚒️',
+  SWORD: '⚔️',
+  FISHING_ROD: 
+
+  const normal
+  
+    url: `${SKYBL
+  }
+
+  const normalizedTy
+  return {
+ 
+
+export function getEquipmentIcon(itemName: s
+  
+  if (upperName.includ
   BEE: '🐝',
   RABBIT: '🐰',
   PIG: '🐷',
@@ -94,30 +94,30 @@ export function getEquipmentIcon(itemName: string): SkyblockIcon {
   let equipmentType = 'ITEM'
   if (upperName.includes('HELMET') || upperName.includes('HAT') || upperName.includes('HEAD')) {
     equipmentType = 'HELMET'
-  } else if (upperName.includes('CHESTPLATE') || upperName.includes('TUNIC') || upperName.includes('SHIRT')) {
-    equipmentType = 'CHESTPLATE'
-  } else if (upperName.includes('LEGGINGS') || upperName.includes('PANTS')) {
-    equipmentType = 'LEGGINGS'
-  } else if (upperName.includes('BOOTS') || upperName.includes('SHOES')) {
-    equipmentType = 'BOOTS'
-  } else if (upperName.includes('HOE')) {
-    equipmentType = 'HOE'
-  } else if (upperName.includes('AXE')) {
-    equipmentType = 'AXE'
-  } else if (upperName.includes('SWORD')) {
-    equipmentType = 'SWORD'
-  } else if (upperName.includes('PICKAXE') || upperName.includes('PICK')) {
-    equipmentType = 'PICKAXE'
-  } else if (upperName.includes('FISHING') || upperName.includes('ROD')) {
-    equipmentType = 'FISHING_ROD'
-  }
-  
-  return {
-    url: `${SKYBLOCK_ITEM_API_BASE}/${itemName.replace(/ /g, '_')}`,
-    fallbackEmoji: EQUIPMENT_EMOJIS[equipmentType] || '⚒️'
-  }
-}
 
-export function getIconEmoji(icon: SkyblockIcon): string {
-  return icon.fallbackEmoji
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

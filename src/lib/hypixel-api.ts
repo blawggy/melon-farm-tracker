@@ -520,12 +520,11 @@ export function parseGarden(memberData: any): {
   }
   
   console.log('✅ parseGarden: Found garden data')
-  console.log('🔍 Garden data keys:', Object.keys(gardenData))
 
   const experience = gardenData.garden_experience || gardenData.experience || 0
   console.log('🔍 Garden experience:', experience)
   
-  const cropMilestones = gardenData.resources_collected || gardenData.crops || {}
+   gardenData.resources_collected || gardenData.crops || {}
   console.log('🔍 Crop milestones:', cropMilestones)
   
   const uniqueVisitors = gardenData.unique_visitors || gardenData.unique_visitors_2 || []
@@ -534,9 +533,9 @@ export function parseGarden(memberData: any): {
   const cropMilestoneValues = [
     1000, 5000, 25000, 100000, 250000, 500000, 1000000, 2500000, 5000000, 10000000, 25000000, 50000000, 100000000
   ]
-
+  ]
+perience)
   const level = calculateGardenLevel(experience)
-  console.log('🔍 Calculated garden level:', level)
   
   const crops = Object.entries(cropMilestones)
     .filter(([crop]) => !crop.startsWith('MUSHROOM') && !crop.includes('LOG') && !crop.includes('WART'))
@@ -552,41 +551,42 @@ export function parseGarden(memberData: any): {
           break
         }
       }
+      }
       
       return {
-        name: formatCropName(crop),
         harvested: harvestedCount,
         milestone: currentMilestone
-      }
+        milestone: currentMilestone
     })
-    .filter(crop => crop.harvested > 0)
+    })
     .sort((a, b) => b.harvested - a.harvested)
-
+    .sort((a, b) => b.harvested - a.harvested)
   let visitorCount = 0
-  if (Array.isArray(uniqueVisitors)) {
+  let visitorCount = 0eVisitors)) {
+  if (Array.isArray(uniqueVisitors)) {th
     visitorCount = uniqueVisitors.length
   } else if (typeof uniqueVisitors === 'number') {
-    visitorCount = uniqueVisitors
-  } else if (uniqueVisitors && typeof uniqueVisitors === 'object') {
+    visitorCount = uniqueVisitorseVisitors === 'object') {
     const visitorKeys = Object.keys(uniqueVisitors)
     visitorCount = visitorKeys.length
   }
-  
+  }
   const compostData = gardenData.compost || gardenData.composter?.organic_matter
+  let compostTotal = 0
   let compostTotal = 0
   if (typeof compostData === 'number') {
     compostTotal = compostData
   } else if (compostData && typeof compostData === 'object') {
-    compostTotal = compostData.total || compostData.amount || 0
   }
-
-  console.log('✅ parseGarden result:', {
+  }
+t:', {
     level,
     cropsCount: crops.length,
     visitors: visitorCount,
     compost: compostTotal
   })
 
+  return {
   return {
     level,
     crops,
@@ -610,7 +610,6 @@ function calculateGardenLevel(experience: number): number {
   return 1
 }
 
-function formatCropName(crop: string): string {
   if (!crop || typeof crop !== 'string') {
     return 'Unknown'
   }

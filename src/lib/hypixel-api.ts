@@ -385,7 +385,9 @@ export function parseFarmingFortune(memberData: any): {
   })
 
   const equipmentSlots = inventory.equipment_contents?.data || []
-  equipmentSlots.forEach((item: any) => {
+  const equipmentArray = Array.isArray(equipmentSlots) ? equipmentSlots : Object.values(equipmentSlots || {})
+  
+  equipmentArray.forEach((item: any) => {
     if (item?.tag?.display?.Name) {
       const fortune = extractFortuneFromItem(item)
       if (fortune > 0) {

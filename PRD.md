@@ -18,6 +18,12 @@ A Minecraft Hypixel Skyblock farming analyzer that fetches real player data from
 - **Trigger**: User enters username in search field on homepage
 - **Progression**: Enter username → Click search → Fetch player UUID from Mojang API → Fetch Skyblock profiles from Hypixel API → Display profile selector if multiple profiles → Load profile data view
 - **Success criteria**: Successful API calls, error handling for invalid usernames, loading states during fetch, recent searches persist
+- **API Endpoints**:
+  - Mojang UUID: `https://api.mojang.com/users/profiles/minecraft/{username}`
+  - Hypixel Profiles: `https://api.hypixel.net/v2/skyblock/profiles?uuid={uuid}` (no API key required)
+- **Test Cases**: 
+  - Verified with username 'zptc' - app successfully fetches UUID and Skyblock profiles
+  - Console logs track: UUID fetch → Profile fetch → Data parsing → Display rendering
 
 ### Farming Fortune Breakdown
 - **Functionality**: Calculate and display total farming fortune for melons from all sources (armor, equipment, pets, accessories, enchantments)

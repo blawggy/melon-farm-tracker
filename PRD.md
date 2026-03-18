@@ -13,11 +13,18 @@ A Hypixel Skyblock farming analyzer that provides detailed stats tracking for fa
 - **Functionality**: Search for Minecraft players by username
 - **Purpose**: Find and analyze any player's Skyblock farming statistics
 - **Trigger**: Enter username and click search button
-- **Progression**: Enter username → Click search → Fetch player UUID from Mojang API → Fetch Skyblock profiles from Hypixel API → Display profile selection
-- **Success criteria**: Successfully fetches real player data, handles errors gracefully
-- **API Endpoints**:
-  - Mojang API: `https://api.mojang.com/users/profiles/minecraft/{username}`
-  - Hypixel API: `https://api.hypixel.net/v2/skyblock/profiles?uuid={uuid}`
+- **Progression**: Enter username → Click search → Fetch player UUID from Mojang API (with fallbacks) → Fetch Skyblock profiles from third-party APIs → Display profile selection
+- **Success criteria**: Successfully fetches real player data, handles errors gracefully, uses fallback APIs for reliability
+- **API Strategy**: Multiple fallback APIs to ensure reliability:
+  - **Mojang UUID APIs** (tried in order):
+    - Mojang Official: `https://api.mojang.com/users/profiles/minecraft/{username}`
+    - Ashcon: `https://api.ashcon.app/mojang/v2/user/{username}`
+    - PlayerDB: `https://playerdb.co/api/player/minecraft/{username}`
+  - **Skyblock Profile APIs** (tried in order):
+    - Sky.shiiyu.moe: `https://sky.shiiyu.moe/api/v2/profile/{uuid}`
+    - SkyCrypt: `https://sky.lea.moe/api/v2/profile/{uuid}`
+    - Hypixel API Proxy: `https://hypixel-api-proxy.herokuapp.com/api/v2/skyblock/profiles?uuid={uuid}`
+  - Note: Direct Hypixel API access requires authentication keys, so we use community-maintained APIs and proxies
 
 ### Fortune Breakdown
 - **Functionality**: Calculate and display total farming fortune from all sources
@@ -55,12 +62,13 @@ A Hypixel Skyblock farming analyzer that provides detailed stats tracking for fa
 - **Success criteria**: Guides persist between sessions, markdown renders correctly
 
 ## Edge Case Handling
-- **Invalid Username**: Display clear error message when player not found via Mojang API
-- **No Skyblock Profiles**: Show helpful message when player has no Skyblock profiles
+- **Invalid Username**: Display clear error message when player not found via Mojang API fallback chain
+- **No Skyblock Profiles**: Show helpful message when player has no Skyblock profiles across all API sources
 - **Multiple Profiles**: Allow user to select which profile to analyze
 - **Missing Data**: Handle incomplete profile data (no garden, no pets, missing equipment) with fallback displays
-- **API Timeout**: Show loading state with timeout fallback after 10 seconds
-- **API Rate Limiting**: Show user-friendly message when Hypixel API rate limit is hit
+- **API Timeout**: Automatic timeout per API (8-15s) with fallback to next API in chain
+- **API Rate Limiting**: Automatically try next API when rate limited, show user-friendly message only if all APIs fail
+- **All APIs Down**: Show clear message when all fallback APIs are unavailable
 - **Empty Guides**: Show helpful empty state when no guides exist with prompt to create first guide
 - **Markdown Errors**: Render markdown safely, sanitize potentially dangerous HTML
 - **Guide Deletion**: Require confirmation before deleting guides to prevent accidental loss

@@ -115,101 +115,194 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
 }
 
 export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfile[]> {
-  try {
-    const cleanUUID = uuid.replace(/-/g, '')
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 15000)
-
-    const response = await fetch(`https://api.hypixel.net/v2/skyblock/profiles?uuid=${cleanUUID}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      signal: controller.signal
-    })
-
-    clearTimeout(timeoutId)
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        throw new Error('API rate limit reached. Please try again in a moment.')
+  const cleanUUID = uuid.replace(/-/g, '')
+  
+  const apis = [
+    {
+      name: 'Sky.shiiyu.moe',
+      url: `https://sky.shiiyu.moe/api/v2/profile/${cleanUUID}`,
+      parse: (data: any) => {
+        if (!data.profiles || Object.keys(data.profiles).length === 0) {
+          throw new Error('No profiles found')
+        }
+        
+        return Object.entries(data.profiles).map(([profileId, profile]: [string, any]) => ({
+          profile_id: profileId,
+          cute_name: profile.cute_name || profileId,
+          selected: profile.current || false,
+          members: profile.members || {}
+        }))
       }
-      if (response.status === 404) {
-        throw new Error('Player has no Skyblock profiles.')
+    },
+    {
+      name: 'SkyCrypt',
+      url: `https://sky.lea.moe/api/v2/profile/${cleanUUID}`,
+      parse: (data: any) => {
+        if (!data.profiles || Object.keys(data.profiles).length === 0) {
+          throw new Error('No profiles found')
+        }
+        
+        return Object.entries(data.profiles).map(([profileId, profile]: [string, any]) => ({
+          profile_id: profileId,
+          cute_name: profile.cute_name || profileId,
+          selected: profile.selected || false,
+          members: profile.members || {}
+        }))
       }
-      throw new Error(`Failed to fetch Skyblock profiles (Status: ${response.status})`)
-    }
-
-    const data: HypixelResponse = await response.json()
-
-    if (!data.success) {
-      throw new Error('Failed to fetch Skyblock profiles - API returned unsuccessful response')
-    }
-
-    if (!data.profiles || data.profiles.length === 0) {
-      throw new Error('This player has no Skyblock profiles.')
-    }
-
-    console.log('✅ Found', data.profiles.length, 'Skyblock profile(s)')
-
-    return data.profiles.map(profile => ({
-      ...profile,
-      selected: profile.selected || false
-    }))
-  } catch (error) {
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        throw new Error('Request timeout - the Hypixel API took too long to respond')
+    },
+    {
+      name: 'Hypixel-API-Reborn Proxy',
+      url: `https://hypixel-api-proxy.herokuapp.com/api/v2/skyblock/profiles?uuid=${cleanUUID}`,
+      parse: (data: any) => {
+        if (!data.profiles || data.profiles.length === 0) {
+          throw new Error('No profiles found')
+        }
+        
+        return data.profiles.map((profile: any) => ({
+          profile_id: profile.profile_id,
+          cute_name: profile.cute_name,
+          selected: profile.selected || false,
+          members: profile.members
+        }))
       }
-      throw error
     }
-    throw new Error('Network error while fetching Skyblock profiles')
+  ]
+
+  let lastError: Error | null = null
+
+  for (const api of apis) {
+    try {
+      console.log(`🔍 Trying ${api.name} API...`)
+      
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
+
+      const response = await fetch(api.url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          console.log(`⚠️ ${api.name} rate limited, trying next API...`)
+          continue
+        }
+        if (response.status === 404) {
+          throw new Error('Player has no Skyblock profiles.')
+        }
+        throw new Error(`API returned status ${response.status}`)
+      }
+
+      const data = await response.json()
+      const profiles = api.parse(data)
+
+      if (!profiles || profiles.length === 0) {
+        throw new Error('No Skyblock profiles found')
+      }
+
+      console.log(`✅ Found ${profiles.length} Skyblock profile(s) via ${api.name}`)
+
+      return profiles
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.log(`⏱️ ${api.name} timeout, trying next API...`)
+          lastError = new Error('Request timeout')
+          continue
+        }
+        if (error.message.includes('No Skyblock profiles') || error.message.includes('no Skyblock profiles')) {
+          throw error
+        }
+        console.log(`❌ ${api.name} failed:`, error.message)
+        lastError = error
+        continue
+      }
+      lastError = new Error('Unknown error')
+    }
   }
+
+  throw lastError || new Error('All APIs failed to fetch Skyblock profiles. The player may not have any Skyblock profiles or all services are currently unavailable.')
 }
 
 export async function fetchProfile(profileId: string): Promise<HypixelProfile> {
-  try {
-    const url = `https://api.hypixel.net/v2/skyblock/profile?profile=${profileId}`
-
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000)
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      signal: controller.signal
-    })
-
-    clearTimeout(timeoutId)
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        throw new Error('API rate limit reached. Please try again in a moment.')
+  const apis = [
+    {
+      name: 'Sky.shiiyu.moe',
+      url: `https://sky.shiiyu.moe/api/v2/profile/${profileId}`,
+      parse: (data: any) => {
+        if (!data.profile) {
+          throw new Error('Profile not found')
+        }
+        return {
+          profile_id: profileId,
+          cute_name: data.profile.cute_name || profileId,
+          selected: data.profile.current || false,
+          members: data.profile.members || {}
+        }
       }
-      if (response.status === 404) {
-        throw new Error('Profile not found')
+    }
+  ]
+
+  let lastError: Error | null = null
+
+  for (const api of apis) {
+    try {
+      console.log(`🔍 Trying ${api.name} API for profile...`)
+      
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+
+      const response = await fetch(api.url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          console.log(`⚠️ ${api.name} rate limited, trying next API...`)
+          continue
+        }
+        if (response.status === 404) {
+          throw new Error('Profile not found')
+        }
+        throw new Error(`API returned status ${response.status}`)
       }
-      throw new Error(`Failed to fetch profile data (Status: ${response.status})`)
-    }
 
-    const data = await response.json()
+      const data = await response.json()
+      const profile = api.parse(data)
 
-    if (!data.success || !data.profile) {
-      throw new Error('Failed to load profile - invalid response data')
-    }
+      console.log(`✅ Loaded profile via ${api.name}`)
 
-    return data.profile
-  } catch (error) {
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        throw new Error('Request timeout - the API took too long to respond')
+      return profile
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.log(`⏱️ ${api.name} timeout, trying next API...`)
+          lastError = new Error('Request timeout')
+          continue
+        }
+        if (error.message.includes('Profile not found')) {
+          throw error
+        }
+        console.log(`❌ ${api.name} failed:`, error.message)
+        lastError = error
+        continue
       }
-      throw error
+      lastError = new Error('Unknown error')
     }
-    throw new Error('Network error while fetching profile data')
   }
+
+  throw lastError || new Error('Failed to load profile - all services are currently unavailable.')
 }
 
 export function parseFarmingFortune(memberData: any): {

@@ -563,34 +563,31 @@ export function parseGarden(memberData: any): {
   if (Array.isArray(uniqueVisitors)) {
     visitorCount = uniqueVisitors.length
   } else if (typeof uniqueVisitors === 'number') {
-    visitorCount = uniqueVisitors
   } else if (uniqueVisitors && typeof uniqueVisitors === 'object') {
     const visitorKeys = Object.keys(uniqueVisitors)
+    const visitorKeys = Object.keys(uniqueVisitors)
     visitorCount = visitorKeys.length
-  }
   
-  const compostData = gardenData.compost || gardenData.composter?.organic_matter
+  
   let compostTotal = 0
-  if (typeof compostData === 'number') {
     compostTotal = compostData
   } else if (compostData && typeof compostData === 'object') {
-    compostTotal = Object.values(compostData).reduce((sum: number, val: any) => sum + (typeof val === 'number' ? val : 0), 0)
+    compostTotal = compostData
   }
+    compostTotal = Object.values(compostData).reduce((sum: number, val: any) => sum + (typeof val === 'number' ? val : 0), 0)
+  console.log('✅ parseGarden result:', {
   
   console.log('✅ parseGarden result:', {
-    level,
+    visitors: visitorCount,
     cropsCount: crops.length,
     visitors: visitorCount,
-    compost: compostTotal
-  })
 
   return {
     level,
     crops,
-    visitors: visitorCount,
     compost: compostTotal
   }
-}
+    visitors: visitorCount,
 
 function calculateGardenLevel(experience: number): number {
   const levels = [

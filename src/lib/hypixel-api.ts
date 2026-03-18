@@ -483,19 +483,32 @@ function formatPetName(type: string): string {
 export function parseGarden(memberData: any): {
   level: number
   crops: Array<{ name: string; harvested: number; milestone: number }>
+  visitors: number
   compost: number
-  compost: number
+} {
   if (!memberData) {
+    return {
+      level: 0,
+      crops: [],
+      visitors: 0,
+      compost: 0
+    }
   }
-
-  }onst garden = memberData.garden
 
   const garden = memberData.garden
 
+  if (!garden) {
+    return {
+      level: 0,
+      crops: [],
+      visitors: 0,
+      compost: 0
+    }
   }
 
-  }
-
+  const experience = garden.garden_experience || 0
+  const cropData = garden.crops || {}
+  const uniqueVisitors = garden.unique_visitors || []
 
   const level = calculateGardenLevel(experience)
   const crops = Object.entries(cropData).map(([crop, data]: [string, any]) => ({
@@ -504,57 +517,57 @@ export function parseGarden(memberData: any): {
     milestone: data?.milestone || 1
   }))
 
-  }))
-
-  
+  let visitorCount = 0
   if (Array.isArray(uniqueVisitors)) {
-  itorCount = uniqueVisitors.length
-  if (Array.isArray(uniqueVisitors)) {ber') {
     visitorCount = uniqueVisitors.length
-  }
+  } else if (typeof uniqueVisitors === 'number') {
     visitorCount = uniqueVisitors
+  }
+
   return {
-  level,
-  return {
+    level,
+    crops,
     visitors: visitorCount,
     compost: garden.compost?.total || 0
-    visitors: visitorCount,
-}
   }
-}lculateGardenLevel(experience: number): number {
+}
+
+function calculateGardenLevel(experience: number): number {
   const levels = [
-    0, 1000, 2500, 5000, 10000, 20000, 35000, 55000, 80000, 110000,
-    145000, 185000, 230000, 280000, 335000, 395000, 460000, 530000, 605000, 685000
     0, 1000, 2500, 5000, 10000, 20000, 35000, 55000, 80000, 110000,
     145000, 185000, 230000, 280000, 335000, 395000, 460000, 530000, 605000, 685000
   ]
   
+  for (let i = levels.length - 1; i >= 0; i--) {
+    if (experience >= levels[i]) {
       return i + 1
     }
   }
 
-  }rn 1
-
-
-} {
+  return 1
+}
 
 function formatCropName(crop: string): string {
+  if (!crop || typeof crop !== 'string') {
+    return 'Unknown'
   }
   
   return crop
-   .split('_')
-  return cropoUpperCase() + word.slice(1).toLowerCase())
     .split('_')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ')
+}
+
 export function parseEquipment(memberData: any): {
   armor: Array<{ name: string; rarity: string }>
   equipment: Array<{ name: string; rarity: string }>
-  armor: Array<{ name: string; rarity: string }>
-  equipment: Array<{ name: string; rarity: string }>
-  const result = {
+  accessories: Array<{ name: string; rarity: string }>
 } {
   const result = {
+    armor: [] as Array<{ name: string; rarity: string }>,
+    equipment: [] as Array<{ name: string; rarity: string }>,
+    accessories: [] as Array<{ name: string; rarity: string }>
+  }
 
   if (!memberData) {
     return result

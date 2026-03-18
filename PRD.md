@@ -1,139 +1,153 @@
 # Planning Guide
 
-A Minecraft Hypixel Skyblock farming tracker that helps players monitor their melon farming progress, calculate profits, and track farming statistics over time.
+A Minecraft Hypixel Skyblock farming analyzer that fetches real player data from the Hypixel API to display farming fortune for melons, pets, armor, equipment, garden levels, and greenhouse progress.
 
 **Experience Qualities**: 
-1. **Efficient** - Quick data entry and instant calculations allow players to focus on farming rather than manual tracking
-2. **Game-authentic** - Visual design mirrors Minecraft's aesthetic with blocky elements and familiar color schemes
-3. **Rewarding** - Clear progress visualization and profit tracking that makes farming sessions feel productive
+1. **Data-driven** - Real-time fetching of player stats from Hypixel API provides accurate, up-to-date farming information
+2. **Comprehensive** - Displays all farming-related stats including fortune breakdown, equipment, pets, and garden progress
+3. **Game-authentic** - Visual design mirrors Minecraft's aesthetic with blocky elements and familiar Skyblock color schemes
 
-**Complexity Level**: Light Application (multiple features with basic state)
-  - The app tracks farming sessions, calculates profits, and persists data, but remains focused on a single activity (melon farming) with straightforward interactions
+**Complexity Level**: Complex Application (advanced functionality with API integration and multiple views)
+  - The app fetches data from external APIs, parses complex nested Skyblock profile data, calculates farming fortune from multiple sources, and displays comprehensive player statistics
 
 ## Essential Features
 
-### Session Tracker
-- **Functionality**: Record melon farming sessions with quantity harvested and time spent
-- **Purpose**: Provides historical data for performance analysis and profit tracking
-- **Trigger**: User clicks "New Session" button
-- **Progression**: Click "New Session" → Enter melons harvested → Enter time spent (optional) → Enter melon price → Click "Save" → Session appears in history list
-- **Success criteria**: Session data persists between app visits, displays in chronological order, and shows calculated profit
+### Player Search
+- **Functionality**: Search for any Hypixel Skyblock player by username with autocomplete and recent searches
+- **Purpose**: Entry point to analyze any player's farming stats
+- **Trigger**: User enters username in search field on homepage
+- **Progression**: Enter username → Click search → Fetch player UUID from Mojang API → Fetch Skyblock profiles from Hypixel API → Display profile selector if multiple profiles → Load profile data view
+- **Success criteria**: Successful API calls, error handling for invalid usernames, loading states during fetch, recent searches persist
 
-### Live Statistics Dashboard
-- **Functionality**: Real-time display of total melons farmed, total profit, average melons per hour, and session count
-- **Purpose**: Motivates continued farming by showing cumulative progress
-- **Trigger**: Automatically updates when sessions are added or removed
-- **Progression**: User adds session → Stats recalculate instantly → Dashboard updates with new totals and averages
-- **Success criteria**: All statistics update accurately, calculations are correct, and values persist across sessions
+### Farming Fortune Breakdown
+- **Functionality**: Calculate and display total farming fortune for melons from all sources (armor, equipment, pets, accessories, enchantments)
+- **Purpose**: Shows players exactly where their farming fortune comes from and how to optimize
+- **Trigger**: Automatically loads after profile selection
+- **Progression**: Profile loaded → Parse armor items → Parse equipment items → Parse pet data → Parse accessory bag → Calculate fortune from each source → Display categorized breakdown with totals
+- **Success criteria**: Accurate fortune calculations, handles missing items gracefully, displays item names and fortune values, shows total farming fortune
 
-### Profit Calculator
-- **Functionality**: Calculate profit based on melons harvested and current market price
-- **Purpose**: Helps players understand their earnings and optimize farming efficiency
-- **Trigger**: Embedded in session entry form
-- **Progression**: Enter melons → Enter price per melon → Profit calculates automatically → Display shows total coins earned
-- **Success criteria**: Accurate multiplication, supports decimal prices, updates in real-time as user types
+### Equipment Display
+- **Functionality**: Display player's farming armor set, equipment, and held items with stats
+- **Purpose**: Visual representation of farming gear setup
+- **Trigger**: Part of profile data display
+- **Progression**: Profile data → Extract armor pieces → Extract equipment slots → Extract held items → Display with item names, enchantments, and fortune contributions
+- **Success criteria**: Shows all 4 armor pieces, equipment slots (necklace, cloak, belt, gloves), displays enchantments, handles missing items
 
-### Session History
-- **Functionality**: Scrollable list of all farming sessions with delete capability
-- **Purpose**: Allows players to review past performance and remove incorrect entries
-- **Trigger**: Displays automatically on app load
-- **Progression**: View session list → Click delete icon on session → Confirm deletion → Session removed from history and stats recalculate
-- **Success criteria**: Sessions display newest first, delete removes from storage, empty state shows helpful message
+### Pet Analyzer
+- **Functionality**: Display active farming pet with level, rarity, and fortune contribution
+- **Purpose**: Shows which pet is being used for farming and its stat bonuses
+- **Trigger**: Part of profile data display
+- **Progression**: Profile data → Find active pet → Extract pet stats → Calculate farming fortune from pet → Display pet icon, level, rarity, and fortune bonus
+- **Success criteria**: Identifies active pet correctly, shows pet progression, calculates fortune accurately
 
-### Achievements & Milestones
-- **Functionality**: Track farming milestones and display achievement badges for reaching goals
-- **Purpose**: Gamify the farming experience and motivate players to reach higher efficiency targets
-- **Trigger**: Automatically checks achievement conditions when stats update
-- **Progression**: Farm melons → Reach milestone threshold → Badge unlocks → Display in achievements section → Progress bar shows next goal
-- **Success criteria**: Achievements persist across sessions, badges display earned state, progress indicators show clear path to next milestone
+### Garden & Greenhouse Progress
+- **Functionality**: Display garden level, plot unlocks, visitor milestones, and greenhouse progress
+- **Purpose**: Shows overall farming progression in the garden update
+- **Trigger**: Part of profile data display
+- **Progression**: Profile data → Extract garden data → Parse crop milestones → Parse visitor completions → Display garden level, unlocked plots, crop progress bars → Extract greenhouse data → Display greenhouse status
+- **Success criteria**: Accurate garden level calculation, shows all crops with progress, displays visitor milestones, greenhouse level and upgrades
 
 ## Edge Case Handling
-- **Zero/Negative Values**: Prevent negative numbers in melon count and price fields; treat zero as valid but show warning
-- **Empty Sessions**: Display friendly empty state with guidance when no sessions exist
-- **Very Large Numbers**: Format numbers with commas for readability (e.g., 1,000,000 melons)
-- **Decimal Prices**: Support decimal coin values (e.g., 0.5 coins per melon)
-- **Data Loss Prevention**: Auto-save all data to prevent loss on accidental closure
+- **Invalid Username**: Display clear error message when player not found or doesn't play Skyblock
+- **API Rate Limits**: Handle 429 responses gracefully with retry suggestions and cooldown messaging
+- **No Skyblock Profiles**: Show helpful message when player has no Skyblock profiles
+- **Multiple Profiles**: Allow user to select which profile to analyze
+- **Missing Data**: Handle incomplete profile data (no garden, no pets, missing equipment) with fallback displays
+- **API Timeout**: Show loading state with timeout fallback after 10 seconds
+- **Offline API**: Display cached data if available, otherwise show service unavailable message
 
 ## Design Direction
-The design should evoke the nostalgic, blocky charm of Minecraft with a farming-focused aesthetic. Players should feel like this tool is a natural extension of their Hypixel Skyblock experience, incorporating the game's signature greens, browns, and earthy tones while maintaining modern usability.
+The design should evoke the nostalgic, blocky charm of Minecraft with a farming and data-analysis focus. Players should feel like this is a premium stat-tracking tool that could exist within Hypixel Skyblock, incorporating the game's signature greens, golds, and Skyblock menu aesthetics while presenting complex data in an easily digestible format.
 
 ## Color Selection
 
-- **Primary Color**: Deep Forest Green (oklch(0.45 0.12 150)) - Represents melons and farming, conveys growth and productivity
+- **Primary Color**: Skyblock Gold (oklch(0.65 0.15 85)) - Represents wealth and progression in Skyblock, used for headers and key stats
 - **Secondary Colors**: 
-  - Dirt Brown (oklch(0.35 0.05 60)) - Grounding earth tone that connects to farming soil
-  - Warm Wheat (oklch(0.75 0.08 85)) - Represents harvest and sunshine, used for highlights
-- **Accent Color**: Bright Melon Red (oklch(0.58 0.20 25)) - Eye-catching highlight for CTAs and important stats
+  - Deep Forest Green (oklch(0.45 0.12 150)) - Represents farming and garden content
+  - Rich Purple (oklch(0.50 0.18 300)) - Epic/legendary rarity color for special items
+- **Accent Color**: Bright Aqua (oklch(0.70 0.15 200)) - Eye-catching highlight for farming fortune numbers and CTAs
 - **Foreground/Background Pairings**: 
-  - Background (Light Cream oklch(0.96 0.01 85)): Dark Forest Text (oklch(0.20 0.05 150)) - Ratio 11.2:1 ✓
-  - Primary (Deep Forest Green oklch(0.45 0.12 150)): White text (oklch(1 0 0)) - Ratio 5.1:1 ✓
-  - Accent (Bright Melon Red oklch(0.58 0.20 25)): White text (oklch(1 0 0)) - Ratio 4.6:1 ✓
-  - Card (Soft Green oklch(0.92 0.02 140)): Dark Forest Text (oklch(0.20 0.05 150)) - Ratio 10.8:1 ✓
+  - Background (Dark Slate oklch(0.18 0.02 240)): Light Text (oklch(0.95 0.01 240)) - Ratio 12.5:1 ✓
+  - Primary (Skyblock Gold oklch(0.65 0.15 85)): Dark Text (oklch(0.15 0.02 85)) - Ratio 8.2:1 ✓
+  - Accent (Bright Aqua oklch(0.70 0.15 200)): Dark Text (oklch(0.15 0.02 200)) - Ratio 9.8:1 ✓
+  - Card (Darker Slate oklch(0.22 0.02 240)): Light Text (oklch(0.95 0.01 240)) - Ratio 11.1:1 ✓
 
 ## Font Selection
-The typefaces should feel slightly playful and blocky to match Minecraft's aesthetic while remaining highly readable for numbers and statistics.
+The typefaces should feel professional yet playful to match Minecraft's aesthetic while remaining highly readable for complex stat displays and data tables.
 
 - **Typographic Hierarchy**: 
-  - H1 (App Title): Bungee/32px/tight letter spacing - Bold, blocky feel for header
-  - H2 (Section Headers): Bungee/20px/normal letter spacing - Consistent with main title
-  - Stats (Large Numbers): JetBrains Mono/28px/medium weight/tabular numbers - Monospace clarity for stats
-  - Body Text: Inter/16px/normal weight/relaxed line height - Clean readability for descriptions
-  - Session Details: JetBrains Mono/14px/normal weight - Consistent number display
+  - H1 (App Title): Bungee Bold/36px/tight letter spacing - Bold presence for main header
+  - H2 (Section Headers): Inter Semibold/24px/normal letter spacing - Clear section delineation
+  - H3 (Subsections): Inter Medium/18px/normal letter spacing - Equipment and stat categories
+  - Stats (Large Numbers): JetBrains Mono Bold/32px/tabular numbers - Fortune values stand out
+  - Body Text: Inter/16px/normal weight/relaxed line height - Descriptions and labels
+  - Item Names: JetBrains Mono/14px/medium weight - Consistent with game's item display
+  - Small Labels: Inter/12px/medium weight - Secondary information
 
 ## Animations
-Animations should feel immediate and satisfying, reinforcing the player's actions with subtle feedback that echoes Minecraft's responsive gameplay.
+Animations should feel smooth and purposeful, guiding the user through data loading and highlighting important stats without being distracting.
 
-- Session cards fade in with a slight slide-up when added
-- Statistics counter animates with a brief spring effect when values change
-- Button presses have a subtle scale-down effect (like pressing a Minecraft button)
-- Delete actions have a quick fade-out before removal
-- Form submission triggers a success state with a gentle pulse
+- Profile data fades in with staggered children for each stat section
+- Search box has subtle pulse animation while loading
+- Fortune breakdown animates in with progressive reveal of each source
+- Hover states on equipment items show tooltip with smooth fade-in
+- Profile selection cards scale slightly on hover
+- Error messages shake gently to draw attention
+- Loading spinners use Minecraft-inspired rotation
 
 ## Component Selection
 
 - **Components**: 
-  - Card (for session entries and stats dashboard) - Clean separation of content areas
-  - Button (for CTAs, delete actions) - Primary variant for "New Session", ghost variant for delete
-  - Input (for melon count, price entry) - With number type and step attributes
-  - Dialog (for new session form) - Modal overlay to focus on data entry
-  - Badge (for displaying achievement status) - Highlight earned vs locked milestones
-  - Separator (between sections) - Visual organization
-  - ScrollArea (for session history) - Smooth scrolling on long lists
-  - Progress (for milestone progress bars) - Visual indicator of progress to next achievement
-  - Tabs (for switching between history and achievements) - Organize content sections
+  - Card (for equipment display, stats panels, profile sections) - Organized content areas with dark theme
+  - Button (for search, profile selection) - Primary for main actions, ghost for secondary
+  - Input (for username search) - With loading state and validation
+  - Badge (for rarity tiers, levels) - Color-coded for Common/Uncommon/Rare/Epic/Legendary/Mythic
+  - Separator (between stat sections) - Visual organization
+  - ScrollArea (for long lists like accessories) - Smooth scrolling
+  - Progress (for garden crop progress) - Visual crop milestone indicators
+  - Tabs (for switching between equipment/pets/garden) - Organize profile sections
+  - Skeleton (for loading states) - Shimmer effect while fetching data
+  - Alert (for errors and API issues) - Clear error messaging
+  - Tooltip (for item details on hover) - Shows enchantments and detailed stats
 
 - **Customizations**: 
-  - Custom stat cards with large emphasized numbers and subtle pixel-art style borders
-  - Melon icon integration using Phosphor icons or custom SVG
-  - Minecraft-inspired button styling with slight 3D depth effect using shadows
+  - Custom rarity badge colors matching Skyblock (gray/green/blue/purple/gold/red/magenta)
+  - Equipment slot grid display with item icons
+  - Fortune breakdown with source categorization
+  - Garden level progress with crop-specific icons
+  - Profile card selector with cute profile name display
 
 - **States**: 
-  - Buttons: Default (solid with subtle shadow), Hover (brightens, shadow increases), Active (scales down 98%), Disabled (reduced opacity, no shadow)
-  - Inputs: Default (light border), Focus (green ring matching primary color), Error (red border with shake animation), Filled (subtle green tint)
-  - Cards: Default (soft shadow), Hover (shadow lifts slightly for interactive cards)
+  - Buttons: Default (solid with glow), Hover (brighten + scale 102%), Active (scale 98%), Loading (spinner), Disabled (dimmed)
+  - Inputs: Default (border), Focus (glow ring in primary color), Error (red border + shake), Success (green checkmark)
+  - Cards: Default (subtle shadow), Hover (lift + glow for interactive), Loading (skeleton overlay)
+  - Badges: Static color-coded display based on rarity tier
 
 - **Icon Selection**: 
-  - Plus icon for "New Session" button
-  - Trash icon for delete actions
+  - MagnifyingGlass for search
+  - User/UserCircle for player profiles
+  - Sword/Shield for equipment
+  - PawPrint for pets
+  - Plant/Leaf/FlowerLotus for garden/crops
+  - Sparkles for fortune/enchantments
   - ChartBar for statistics
-  - Clock for time tracking
-  - Coins/CurrencyCircleDollar for profit display
-  - Plant/Leaf for melon representation
-  - Trophy/Medal for achievements
-  - Target for goals and milestones
-  - Sparkle/Star for unlocked badges
-  - Lock for locked achievements
+  - Trophy for milestones
+  - Package/Backpack for inventory items
+  - Lightning for farming speed stats
+  - Coins for economy values
 
 - **Spacing**: 
-  - Container padding: p-6 on desktop, p-4 on mobile
-  - Card gaps: gap-4 for stat grids, gap-3 for session lists
-  - Section margins: mb-8 between major sections
-  - Form field spacing: space-y-4 for vertical form layouts
-  - Button padding: px-6 py-3 for primary actions, px-3 py-2 for secondary
+  - Container padding: p-8 on desktop, p-4 on mobile
+  - Card gaps: gap-6 for main sections, gap-4 for subsections
+  - Section margins: mb-12 between major sections, mb-6 for subsections
+  - Grid layouts: gap-4 for equipment grids
+  - Stat displays: gap-2 for tight number+label pairs
 
 - **Mobile**: 
-  - Stats dashboard switches from 4-column grid to 2-column on tablet, single column on mobile
-  - Session cards remain full-width but with reduced padding
-  - Dialog forms adjust to near-fullscreen on mobile with bottom sheet style
-  - Font sizes reduce slightly (H1 to 24px, body to 14px) for mobile viewports
-  - Touch targets minimum 44px for all interactive elements
+  - Search bar remains prominent at top
+  - Equipment grid adapts from 4-column to 2-column to single column
+  - Stats cards stack vertically on mobile
+  - Profile selector switches to vertical list
+  - Touch targets 44px minimum
+  - Reduced font sizes (H1 to 28px, body to 14px)
+  - Bottom padding increased for thumb-friendly scrolling

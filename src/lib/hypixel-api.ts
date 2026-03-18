@@ -285,76 +285,78 @@ export function parseFarmingFortune(memberData: any): {
     return { total, sources }
   }
 
-  const inventory = memberData.inventory || {}
-
-  const armorItems = [
-    { slot: 'helmet', data: inventory.inv_armor?.data?.[3] },
-    { slot: 'chestplate', data: inventory.inv_armor?.data?.[2] },
-    { slot: 'leggings', data: inventory.inv_armor?.data?.[1] },
-    { slot: 'boots', data: inventory.inv_armor?.data?.[0] }
-  ]
-
-  armorItems.forEach(({ data }) => {
-    if (data?.tag?.display?.Name) {
-      const fortune = extractFortuneFromItem(data)
-      if (fortune > 0) {
-        sources.armor.push({
-          name: cleanItemName(data.tag.display.Name),
-          fortune
-        })
+  const parseNBTData = (nbtData: string | any): any[] => {
+    if (!nbtData) return []
+    
+    try {
+      if (typeof nbtData === 'string') {
+        const parsed = JSON.parse(nbtData)
+        if (Array.isArray(parsed)) return parsed
+        if (parsed && typeof parsed === 'object' && 'i' in parsed && Array.isArray(parsed.i)) {
+          return parsed.i
+        }
       }
+      if (Array.isArray(nbtData)) return nbtData
+      if (nbtData && typeof nbtData === 'object') {
+        if ('i' in nbtData && Array.isArray(nbtData.i)) return nbtData.i
+        return Object.values(nbtData)
+      }
+    } catch (e) {
+      console.error('Error parsing NBT data:', e)
     }
-  })
-
-  const equipmentSlots = inventory.equipment_contents?.data
-  let equipmentArray: any[] = []
-  
-  if (equipmentSlots) {
-    if (Array.isArray(equipmentSlots)) {
-      equipmentArray = equipmentSlots
-    } else if (typeof equipmentSlots === 'object') {
-      equipmentArray = Object.values(equipmentSlots)
-    }
+    return []
   }
-  
-  equipmentArray.forEach((item: any) => {
-    if (item?.tag?.display?.Name) {
-      const fortune = extractFortuneFromItem(item)
-      if (fortune > 0) {
-        sources.equipment.push({
-          name: cleanItemName(item.tag.display.Name),
-          fortune
-        })
-      }
-    }
-  })
 
-  const talismanBag = inventory.bag_contents?.talisman_bag?.data
-  let accessoryArray: any[] = []
-  
-  if (talismanBag) {
-    if (Array.isArray(talismanBag)) {
-      accessoryArray = talismanBag
-    } else if (typeof talismanBag === 'object') {
-      accessoryArray = Object.values(talismanBag)
-    }
+  const inventory = memberData.inventory || memberData.inv_contents
+
+  if (inventory?.inv_armor?.data) {
+    const armorItems = parseNBTData(inventory.inv_armor.data)
+    armorItems.forEach((item: any) => {
+      if (item?.tag?.display?.Name) {
+        const fortune = extractFortuneFromItem(item)
+        if (fortune > 0) {
+          sources.armor.push({
+            name: cleanItemName(item.tag.display.Name),
+            fortune
+          })
+        }
+      }
+    })
   }
-  
-  accessoryArray.forEach((item: any) => {
-    if (item?.tag?.display?.Name) {
-      const fortune = extractFortuneFromItem(item)
-      if (fortune > 0) {
-        sources.accessories.push({
-          name: cleanItemName(item.tag.display.Name),
-          fortune
-        })
-      }
-    }
-  })
 
-  const petData = memberData.pets_data?.pets
+  if (inventory?.equipment_contents?.data) {
+    const equipmentItems = parseNBTData(inventory.equipment_contents.data)
+    equipmentItems.forEach((item: any) => {
+      if (item?.tag?.display?.Name) {
+        const fortune = extractFortuneFromItem(item)
+        if (fortune > 0) {
+          sources.equipment.push({
+            name: cleanItemName(item.tag.display.Name),
+            fortune
+          })
+        }
+      }
+    })
+  }
+
+  if (inventory?.bag_contents?.talisman_bag?.data) {
+    const accessoryItems = parseNBTData(inventory.bag_contents.talisman_bag.data)
+    accessoryItems.forEach((item: any) => {
+      if (item?.tag?.display?.Name) {
+        const fortune = extractFortuneFromItem(item)
+        if (fortune > 0) {
+          sources.accessories.push({
+            name: cleanItemName(item.tag.display.Name),
+            fortune
+          })
+        }
+      }
+    })
+  }
+
+  const petData = memberData.pets_data?.pets || memberData.pets
   if (petData && Array.isArray(petData) && petData.length > 0) {
-    const activePet = petData.find((p: any) => p.active === true)
+    const activePet = petData.find((p: any) => p && p.active === true)
     if (activePet && activePet.type) {
       const petFortune = calculatePetFortune(activePet)
       if (petFortune > 0) {
@@ -487,6 +489,7 @@ export function parseGarden(memberData: any): {
   compost: number
 } {
   if (!memberData) {
+    console.log('⚠️ parseGarden: No member data provided')
     return {
       level: 0,
       crops: [],
@@ -495,9 +498,18 @@ export function parseGarden(memberData: any): {
     }
   }
 
-  const garden = memberData.garden
+  console.log('🔍 parseGarden: Checking for garden data...')
+  console.log('🔍 memberData keys:', Object.keys(memberData))
+  
+  const garden = memberData.garden || memberData.player_data?.garden
 
   if (!garden) {
+    console.log('⚠️ parseGarden: No garden data found')
+    console.log('🔍 Available data:', {
+      hasGarden: !!memberData.garden,
+      hasPlayerData: !!memberData.player_data,
+      hasPlayerDataGarden: !!memberData.player_data?.garden
+    })
     return {
       level: 0,
       crops: [],
@@ -505,17 +517,37 @@ export function parseGarden(memberData: any): {
       compost: 0
     }
   }
+  
+  console.log('✅ parseGarden: Found garden data')
 
   const experience = garden.garden_experience || 0
   const cropData = garden.crops || {}
   const uniqueVisitors = garden.unique_visitors || []
+  
+  const milestones = [
+    1000, 5000, 25000, 100000, 250000, 500000, 1000000, 2500000, 5000000
+  ]
 
   const level = calculateGardenLevel(experience)
-  const crops = Object.entries(cropData).map(([crop, data]: [string, any]) => ({
-    name: formatCropName(crop),
-    harvested: data?.harvested || 0,
-    milestone: data?.milestone || 1
-  }))
+  const crops = Object.entries(cropData).map(([crop, data]: [string, any]) => {
+    const harvested = typeof data === 'number' ? data : (data?.harvested || 0)
+    
+    let currentMilestone = milestones[0]
+    for (let i = 0; i < milestones.length; i++) {
+      if (harvested >= milestones[i]) {
+        currentMilestone = milestones[i + 1] || milestones[i]
+      } else {
+        currentMilestone = milestones[i]
+        break
+      }
+    }
+    
+    return {
+      name: formatCropName(crop),
+      harvested,
+      milestone: currentMilestone
+    }
+  })
 
   let visitorCount = 0
   if (Array.isArray(uniqueVisitors)) {
@@ -523,12 +555,20 @@ export function parseGarden(memberData: any): {
   } else if (typeof uniqueVisitors === 'number') {
     visitorCount = uniqueVisitors
   }
+  
+  const compostData = garden.compost || garden.compost_upgrades
+  let compostTotal = 0
+  if (typeof compostData === 'number') {
+    compostTotal = compostData
+  } else if (compostData && typeof compostData === 'object') {
+    compostTotal = compostData.total || 0
+  }
 
   return {
     level,
     crops,
     visitors: visitorCount,
-    compost: garden.compost?.total || 0
+    compost: compostTotal
   }
 }
 
@@ -573,27 +613,71 @@ export function parseEquipment(memberData: any): {
     return result
   }
 
-  const inventory = memberData.inventory || {}
-
-  const parseItems = (items: any) => {
-    let itemArray: any[] = []
-    if (Array.isArray(items)) {
-      itemArray = items
-    } else if (typeof items === 'object') {
-      itemArray = Object.values(items)
-    }
+  const parseNBTData = (nbtData: string | any): any[] => {
+    if (!nbtData) return []
     
-    return itemArray
-      .filter(item => item?.tag?.display?.Name)
-      .map(item => ({
-        name: cleanItemName(item.tag.display.Name),
-        rarity: (item.tag?.ExtraAttributes?.rarity || 'COMMON').toUpperCase()
-      }))
+    try {
+      if (typeof nbtData === 'string') {
+        const parsed = JSON.parse(nbtData)
+        if (Array.isArray(parsed)) return parsed
+        if (parsed && typeof parsed === 'object' && 'i' in parsed && Array.isArray(parsed.i)) {
+          return parsed.i
+        }
+      }
+      if (Array.isArray(nbtData)) return nbtData
+      if (nbtData && typeof nbtData === 'object') {
+        if ('i' in nbtData && Array.isArray(nbtData.i)) return nbtData.i
+        return Object.values(nbtData)
+      }
+    } catch (e) {
+      console.error('Error parsing NBT data:', e)
+    }
+    return []
   }
 
-  result.armor = parseItems(inventory.inv_armor?.data)
-  result.equipment = parseItems(inventory.equipment_contents?.data)
-  result.accessories = parseItems(inventory.bag_contents?.talisman_bag?.data)
+  const parseItems = (nbtData: any): Array<{ name: string; rarity: string }> => {
+    const items = parseNBTData(nbtData)
+    
+    return items
+      .filter((item: any) => item && item.tag?.display?.Name)
+      .map((item: any) => {
+        const displayName = item.tag.display.Name
+        const rarity = item.tag?.ExtraAttributes?.rarity || 
+                      item.tag?.display?.Lore?.[item.tag.display.Lore.length - 1]?.match(/§[0-9a-f]§l([A-Z ]+)$/)?.[1] ||
+                      'COMMON'
+        
+        return {
+          name: cleanItemName(displayName),
+          rarity: rarity.toString().toUpperCase()
+        }
+      })
+  }
+
+  const inventory = memberData.inventory || memberData.inv_contents
+  
+  if (inventory?.inv_armor?.data) {
+    const armorItems = parseNBTData(inventory.inv_armor.data)
+    result.armor = armorItems
+      .filter((item: any) => item && item.tag?.display?.Name)
+      .map((item: any, index: number) => {
+        const slotNames = ['Boots', 'Leggings', 'Chestplate', 'Helmet']
+        const displayName = item.tag.display.Name
+        const rarity = item.tag?.ExtraAttributes?.rarity || 'COMMON'
+        
+        return {
+          name: cleanItemName(displayName),
+          rarity: rarity.toString().toUpperCase()
+        }
+      })
+  }
+
+  if (inventory?.equipment_contents?.data) {
+    result.equipment = parseItems(inventory.equipment_contents.data)
+  }
+
+  if (inventory?.bag_contents?.talisman_bag?.data) {
+    result.accessories = parseItems(inventory.bag_contents.talisman_bag.data)
+  }
 
   return result
 }
@@ -608,7 +692,7 @@ export function parsePet(memberData: any): {
     return null
   }
 
-  const pets = memberData.pets_data?.pets
+  const pets = memberData.pets_data?.pets || memberData.pets
   
   if (!pets || !Array.isArray(pets) || pets.length === 0) {
     return null

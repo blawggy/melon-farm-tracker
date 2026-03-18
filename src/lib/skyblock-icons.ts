@@ -1,9 +1,10 @@
 const SKYBLOCK_ITEM_API_BASE = 'https://sky.shiiyu.moe/item'
 const SKYBLOCK_HEAD_API_BASE = 'https://mc-heads.net/avatar'
 
+export interface SkyblockIcon {
+  type: 'item' | 'head' | 'emoji'
+  url?: string
   fallbackEmoji: string
-
-  WHEAT: 'WHEAT',
 }
 
 const ITEM_ID_MAP: Record<string, string> = {
@@ -47,89 +48,74 @@ const PET_EMOJIS: Record<string, string> = {
   RABBIT: '🐰',
   PIG: '🐷',
   CAT: '🐱',
-  ELEPHANT: '
+  ELEPHANT: '🐘',
+  MOOSHROOM: '🍄',
+  DEFAULT: '🐾',
 }
-const EQUIPMEN
-  CHESTPLATE:
-  BOOTS: '👢
+
+const EQUIPMENT_EMOJIS: Record<string, string> = {
+  HELMET: '🪖',
+  CHESTPLATE: '👕',
+  LEGGINGS: '👖',
+  BOOTS: '👢',
   AXE: '🪓',
   PICKAXE: '⛏️',
-  NECKLACE: '📿
- 
-
-export function getCropIcon(cropName: string): Sky
-  const itemId 
-  return {
-    fallbackEmoji
+  HOE: '🔨',
+  SWORD: '⚔️',
+  NECKLACE: '📿',
+  CLOAK: '🧥',
+  DEFAULT: '⚙️',
 }
-export funct
-  
-    url: `${SK
+
+export function getCropIcon(cropName: string): SkyblockIcon {
+  const itemId = ITEM_ID_MAP[cropName.toUpperCase().replace(/ /g, '_')] || cropName.toUpperCase()
+  return {
+    type: 'item',
+    url: `${SKYBLOCK_ITEM_API_BASE}/${itemId}`,
+    fallbackEmoji: CROP_EMOJIS[cropName] || CROP_EMOJIS[cropName.toUpperCase().replace(/ /g, '_')] || '🌱'
   }
+}
 
-  const upperName
-  let equipmen
-    equipmentT
-    equipmentTy
- 
+export function getPetIcon(petType: string): SkyblockIcon {
+  return {
+    type: 'emoji',
+    fallbackEmoji: PET_EMOJIS[petType.toUpperCase()] || PET_EMOJIS.DEFAULT
+  }
+}
 
+export function getEquipmentIcon(itemName: string): SkyblockIcon {
+  const upperName = itemName.toUpperCase()
+  let equipmentType = 'DEFAULT'
+
+  if (upperName.includes('HELMET')) {
+    equipmentType = 'HELMET'
+  } else if (upperName.includes('CHESTPLATE') || upperName.includes('TUNIC')) {
+    equipmentType = 'CHESTPLATE'
+  } else if (upperName.includes('LEGGINGS') || upperName.includes('PANTS')) {
+    equipmentType = 'LEGGINGS'
+  } else if (upperName.includes('BOOTS')) {
+    equipmentType = 'BOOTS'
+  } else if (upperName.includes('HOE')) {
     equipmentType = 'HOE'
+  } else if (upperName.includes('AXE')) {
     equipmentType = 'AXE'
+  } else if (upperName.includes('SWORD')) {
     equipmentType = 'SWORD'
-  
-    equipm
+  } else if (upperName.includes('PICKAXE')) {
+    equipmentType = 'PICKAXE'
+  } else if (upperName.includes('NECKLACE')) {
     equipmentType = 'NECKLACE'
+  } else if (upperName.includes('CLOAK')) {
     equipmentType = 'CLOAK'
-   
- 
-
-    url: `${SKYBLOCK_ITEM_API_BASE}/${itemName.replace(/ /g
   }
 
-  return i
+  return {
+    type: 'item',
+    url: `${SKYBLOCK_ITEM_API_BASE}/${itemName.replace(/ /g, '_').toUpperCase()}`,
+    fallbackEmoji: EQUIPMENT_EMOJIS[equipmentType] || EQUIPMENT_EMOJIS.DEFAULT
+  }
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+export function getIconEmoji(icon: SkyblockIcon): string {
+  return icon.fallbackEmoji
+}

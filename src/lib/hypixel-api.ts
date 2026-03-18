@@ -18,71 +18,159 @@ export interface HypixelResponse {
 const HYPIXEL_API_KEY = import.meta.env.VITE_HYPIXEL_API_KEY || ''
 
 export async function fetchMinecraftUUID(username: string): Promise<MojangProfile> {
-  const response = await fetch(
-    `https://api.mojang.com/users/profiles/minecraft/${encodeURIComponent(username)}`
-  )
-
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error('Player not found')
+  try {
+    const cleanUsername = username.trim().replace(/[^a-zA-Z0-9_]/g, '')
+    
+    if (!cleanUsername) {
+      throw new Error('Please enter a valid username')
     }
-    throw new Error('Failed to fetch player data from Mojang')
-  }
+    
+    if (cleanUsername.length < 3 || cleanUsername.length > 16) {
+      throw new Error('Username must be between 3 and 16 characters')
+    }
 
-  return response.json()
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 8000)
+
+    const response = await fetch(
+      `https://api.mojang.com/users/profiles/minecraft/${encodeURIComponent(cleanUsername)}`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        signal: controller.signal
+      }
+    )
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`Player "${cleanUsername}" not found. Check the spelling and try again.`)
+      }
+      if (response.status === 429) {
+        throw new Error('Too many requests to Mojang API. Please wait a moment and try again.')
+      }
+      throw new Error(`Failed to fetch player data (Status: ${response.status})`)
+    }
+
+    const data = await response.json()
+    
+    if (!data || !data.id || !data.name) {
+      throw new Error('Invalid response from Mojang API')
+    }
+
+    return data
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - Mojang API took too long to respond')
+      }
+      throw error
+    }
+    throw new Error('Network error while fetching player data. Please check your connection.')
+  }
 }
 
 export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfile[]> {
-  const url = HYPIXEL_API_KEY
-    ? `https://api.hypixel.net/v2/skyblock/profiles?uuid=${uuid}&key=${HYPIXEL_API_KEY}`
-    : `https://api.hypixel.net/v2/skyblock/profiles?uuid=${uuid}`
+  try {
+    const url = `https://api.hypixel.net/v2/skyblock/profiles?uuid=${uuid}`
+    
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000)
 
-  const response = await fetch(url)
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      signal: controller.signal
+    })
 
-  if (!response.ok) {
-    if (response.status === 429) {
-      throw new Error('API rate limit reached. Please try again in a moment.')
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('API rate limit reached. Please try again in a moment.')
+      }
+      if (response.status === 403) {
+        throw new Error('Invalid API key or access denied. Make sure the profile API is enabled.')
+      }
+      if (response.status === 400) {
+        throw new Error('Invalid player UUID format')
+      }
+      if (response.status === 404) {
+        throw new Error('Player data not found')
+      }
+      throw new Error(`Failed to fetch Skyblock profiles (Status: ${response.status})`)
     }
-    if (response.status === 403) {
-      throw new Error('Invalid API key or access denied')
+
+    const data: HypixelResponse = await response.json()
+
+    if (!data.success) {
+      throw new Error('API request failed - the player may not have Skyblock API enabled')
     }
-    throw new Error('Failed to fetch Skyblock profiles')
+
+    if (!data.profiles || data.profiles.length === 0) {
+      throw new Error('This player has no Skyblock profiles. They may have never played Skyblock.')
+    }
+
+    return data.profiles
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - Hypixel API took too long to respond')
+      }
+      throw error
+    }
+    throw new Error('Network error while fetching Skyblock profiles. Please check your connection.')
   }
-
-  const data: HypixelResponse = await response.json()
-
-  if (!data.success) {
-    throw new Error('API request failed')
-  }
-
-  if (!data.profiles || data.profiles.length === 0) {
-    throw new Error('This player has no Skyblock profiles')
-  }
-
-  return data.profiles
 }
 
 export async function fetchProfile(profileId: string): Promise<HypixelProfile> {
-  const url = HYPIXEL_API_KEY
-    ? `https://api.hypixel.net/v2/skyblock/profile?profile=${profileId}&key=${HYPIXEL_API_KEY}`
-    : `https://api.hypixel.net/v2/skyblock/profile?profile=${profileId}`
+  try {
+    const url = `https://api.hypixel.net/v2/skyblock/profile?profile=${profileId}`
 
-  const response = await fetch(url)
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000)
 
-  if (!response.ok) {
-    if (response.status === 429) {
-      throw new Error('API rate limit reached. Please try again in a moment.')
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+      signal: controller.signal
+    })
+
+    clearTimeout(timeoutId)
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('API rate limit reached. Please try again in a moment.')
+      }
+      if (response.status === 404) {
+        throw new Error('Profile not found')
+      }
+      throw new Error(`Failed to fetch profile data (Status: ${response.status})`)
     }
-    throw new Error('Failed to fetch profile data')
+
+    const data = await response.json()
+
+    if (!data.success || !data.profile) {
+      throw new Error('Failed to load profile - invalid response data')
+    }
+
+    return data.profile
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - the API took too long to respond')
+      }
+      throw error
+    }
+    throw new Error('Network error while fetching profile data')
   }
-
-  const data = await response.json()
-
-  if (!data.success || !data.profile) {
-    throw new Error('Failed to load profile')
-  }
-
-  return data.profile
 }
 
 export function parseFarmingFortune(memberData: any): {

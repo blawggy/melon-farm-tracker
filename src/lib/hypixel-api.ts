@@ -15,7 +15,6 @@ export interface HypixelResponse {
   profiles: HypixelProfile[]
 }
 
-const ELITE_API_BASE = 'https://api.elitebot.dev'
 const HYPIXEL_API_KEY = '14a7e13c-88e4-4e69-bcbb-1699bd3862f7'
 
 export async function fetchMinecraftUUID(username: string): Promise<MojangProfile> {
@@ -30,33 +29,33 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
   }
 
   try {
-    console.log(`🔍 Fetching UUID for ${cleanUsername} via Elite API...`)
-    const response = await fetch(`${ELITE_API_BASE}/player/${cleanUsername}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-      mode: 'cors'
-    })
+    console.log(`🔍 Fetching UUID for ${cleanUsername}...`)
+    const response = await fetch(`https://api.mojang.com/users/profiles/minecraft/${cleanUsername}`)
 
     if (!response.ok) {
-      throw new Error('Player not found')
+      if (response.status === 404) {
+        throw new Error('Player not found. Please check the username.')
+      }
+      throw new Error(`Failed to fetch player (Status: ${response.status})`)
     }
 
     const data = await response.json()
     
-    if (data.uuid && data.name) {
-      console.log(`✅ Found player: ${data.name} (${data.uuid})`)
+    if (data.id && data.name) {
+      console.log(`✅ Found player: ${data.name} (${data.id})`)
       return {
-        id: data.uuid.replace(/-/g, ''),
+        id: data.id,
         name: data.name
       }
     }
 
-    throw new Error('Invalid response from API')
+    throw new Error('Invalid response from Mojang API')
   } catch (error) {
     console.error('Error fetching player:', error)
-    throw new Error('Failed to fetch player. Please check the username and try again.')
+    if (error instanceof Error) {
+      throw error
+    }
+    throw new Error('Failed to fetch player. Please try again.')
   }
 }
 
@@ -66,40 +65,26 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
   try {
     console.log(`🔍 Fetching Skyblock profiles for UUID ${cleanUUID}...`)
     
-    const response = await fetch(`${ELITE_API_BASE}/player/${cleanUUID}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      },
-      mode: 'cors'
-    })
+    const url = `https://api.hypixel.net/v2/skyblock/profiles?uuid=${cleanUUID}&key=${HYPIXEL_API_KEY}`
+    const response = await fetch(url)
 
     if (!response.ok) {
       throw new Error(`Failed to fetch profiles (Status: ${response.status})`)
     }
 
-    const data = await response.json()
-    console.log('📦 Elite API Response:', data)
+    const data: HypixelResponse = await response.json()
+    console.log('📦 Hypixel API Response:', data)
     
-    if (!data.profiles || typeof data.profiles !== 'object') {
+    if (!data.success) {
+      throw new Error('API request failed')
+    }
+
+    if (!data.profiles || data.profiles.length === 0) {
       throw new Error('No Skyblock profiles found. Make sure the player has played Hypixel Skyblock and has API access enabled.')
     }
 
-    const profiles = Object.entries(data.profiles).map(([profileId, profileData]: [string, any]) => {
-      return {
-        profile_id: profileId,
-        cute_name: profileData.name || profileData.cute_name || profileId.substring(0, 8),
-        selected: profileData.selected || false,
-        members: profileData.members || {}
-      }
-    })
-
-    if (profiles.length === 0) {
-      throw new Error('No Skyblock profiles found')
-    }
-
-    console.log(`✅ Found ${profiles.length} profile(s)`)
-    return profiles
+    console.log(`✅ Found ${data.profiles.length} profile(s)`)
+    return data.profiles
   } catch (error) {
     console.error('Error fetching Skyblock profiles:', error)
     if (error instanceof Error) {
@@ -149,17 +134,7 @@ export function parseFarmingFortune(memberData: any): {
     const anita = jacobsData.anita_bonus || 0
     total += anita * 4
 
-    const plotsUnlocked = memberData.garden_player_data?.garden?.plots_unlocked || 
-                          memberData.garden?.plots_unlocked || 0
-    total += Math.min(plotsUnlocked * 3, 36)
-
-    const community = memberData.garden_player_data?.garden?.community_shop || {}
-    if (community.farming_fortune) {
-      total += community.farming_fortune * 4
-    }
-
-    const accessories = memberData.accessory_bag_storage?.bag_contents_0?.data || 
-                       memberData.inventory?.bag_contents?.talisman_bag?.data
+    const accessories = memberData.inventory?.bag_contents?.talisman_bag?.data
     if (accessories) {
       const accessoryItems = parseInventoryData(accessories)
       accessoryItems.forEach((item: any) => {
@@ -231,12 +206,13 @@ function parseInventoryData(data: any): any[] {
   
   try {
     if (typeof data === 'string') {
-      const parsed = JSON.parse(data)
-      if (Array.isArray(parsed)) return parsed
-      if (parsed?.i && Array.isArray(parsed.i)) return parsed.i
+      const decoded = atob(data)
+      const parsed = JSON.parse(decoded)
+      if (Array.isArray(parsed)) return parsed.filter(item => item && item.tag)
+      if (parsed?.i && Array.isArray(parsed.i)) return parsed.i.filter((item: any) => item && item.tag)
     }
-    if (Array.isArray(data)) return data
-    if (data?.i && Array.isArray(data.i)) return data.i
+    if (Array.isArray(data)) return data.filter(item => item && item.tag)
+    if (data?.i && Array.isArray(data.i)) return data.i.filter((item: any) => item && item.tag)
   } catch (error) {
     console.error('Error parsing inventory data:', error)
   }
@@ -392,10 +368,9 @@ export function parseGarden(memberData: any): {
 
   try {
     console.log('🔍 Parsing garden data...')
+    console.log('🔍 Member data keys:', Object.keys(memberData))
     
-    const gardenData = memberData.garden_player_data?.garden || 
-                       memberData.garden || 
-                       memberData.player_data?.garden
+    const gardenData = memberData.garden_player_data || memberData.garden
 
     if (!gardenData) {
       console.log('⚠️ No garden data found in member data')
@@ -408,20 +383,25 @@ export function parseGarden(memberData: any): {
     const level = calculateGardenLevel(experience)
     console.log(`🌱 Garden Level: ${level} (${experience} XP)`)
 
-    const cropsData = gardenData.resources_collected || {}
-    console.log('🌾 Crops data:', cropsData)
+    const cropsData = gardenData.resources_collected || gardenData.crops || {}
+    console.log('🌾 Crops data keys:', Object.keys(cropsData))
 
     const cropNames: Record<string, string> = {
       'WHEAT': 'Wheat',
+      'CARROT': 'Carrot',
       'CARROT_ITEM': 'Carrot',
+      'POTATO': 'Potato',
       'POTATO_ITEM': 'Potato',
       'PUMPKIN': 'Pumpkin',
       'MELON': 'Melon',
+      'MELON_SLICE': 'Melon',
       'MUSHROOM_COLLECTION': 'Mushroom',
       'COCOA': 'Cocoa Beans',
+      'COCOA_BEANS': 'Cocoa Beans',
       'CACTUS': 'Cactus',
       'SUGAR_CANE': 'Sugar Cane',
       'NETHER_STALK': 'Nether Wart',
+      'NETHER_WART': 'Nether Wart',
       'INK_SACK:3': 'Cocoa Beans'
     }
 
@@ -449,9 +429,10 @@ export function parseGarden(memberData: any): {
           milestone
         }
       })
+      .filter(crop => crop.harvested > 0)
       .sort((a, b) => b.harvested - a.harvested)
 
-    console.log(`✅ Parsed ${crops.length} crops`)
+    console.log(`✅ Parsed ${crops.length} crops:`, crops)
 
     let visitors = 0
     const visitorsData = gardenData.unique_visitors || gardenData.unique_visitors_2
@@ -539,8 +520,7 @@ export function parseEquipment(memberData: any): {
         }))
     }
 
-    const accessories = memberData.accessory_bag_storage?.bag_contents_0?.data || 
-                       inventory?.bag_contents?.talisman_bag?.data
+    const accessories = inventory?.bag_contents?.talisman_bag?.data
     if (accessories) {
       const accessoryItems = parseInventoryData(accessories)
       result.accessories = accessoryItems

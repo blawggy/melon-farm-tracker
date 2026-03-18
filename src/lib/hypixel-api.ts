@@ -122,8 +122,32 @@ export async function fetchMinecraftUUID(username: string): Promise<MojangProfil
 
 export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfile[]> {
   const cleanUUID = uuid.replace(/-/g, '')
+  const HYPIXEL_API_KEY = '14a7e13c-88e4-4e69-bcbb-1699bd3862f7'
   
   const apis = [
+    {
+      name: 'Hypixel Official API',
+      url: `https://api.hypixel.net/v2/skyblock/profiles?uuid=${cleanUUID}`,
+      parse: (data: any) => {
+        if (!data.success) {
+          throw new Error('API request unsuccessful')
+        }
+        
+        if (!data.profiles || data.profiles.length === 0) {
+          throw new Error('No profiles found')
+        }
+        
+        return data.profiles.map((profile: any) => ({
+          profile_id: profile.profile_id,
+          cute_name: profile.cute_name || 'Unknown',
+          selected: profile.selected || false,
+          members: profile.members || {}
+        }))
+      },
+      headers: {
+        'API-Key': HYPIXEL_API_KEY
+      }
+    },
     {
       name: 'Slothpixel (Hypixel Proxy)',
       url: `https://api.slothpixel.me/api/skyblock/profiles/${cleanUUID}`,
@@ -155,22 +179,6 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
           members: profile.members || {}
         }))
       }
-    },
-    {
-      name: 'SkyCrypt API',
-      url: `https://sky.lea.moe/api/v2/profile/${cleanUUID}`,
-      parse: (data: any) => {
-        if (!data.profiles || Object.keys(data.profiles).length === 0) {
-          throw new Error('No profiles found')
-        }
-        
-        return Object.entries(data.profiles).map(([profileId, profile]: [string, any]) => ({
-          profile_id: profileId,
-          cute_name: profile.cute_name || profileId,
-          selected: profile.selected || false,
-          members: profile.members || {}
-        }))
-      }
     }
   ]
 
@@ -183,11 +191,17 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 15000)
 
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+      }
+      
+      if ('headers' in api && api.headers) {
+        Object.assign(headers, api.headers)
+      }
+
       const response = await fetch(api.url, {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-        },
+        headers,
         mode: 'cors',
         signal: controller.signal
       })
@@ -201,6 +215,10 @@ export async function fetchSkyblockProfiles(uuid: string): Promise<HypixelProfil
         }
         if (response.status === 404) {
           console.log(`⚠️ ${api.name} returned 404, trying next API...`)
+          continue
+        }
+        if (response.status === 403) {
+          console.log(`⚠️ ${api.name} returned 403 (forbidden/invalid key), trying next API...`)
           continue
         }
         throw new Error(`API returned status ${response.status}`)
